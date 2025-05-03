@@ -4,7 +4,8 @@ import {
   Heading, 
   useColorModeValue, 
   IconButton, 
-  useColorMode 
+  useColorMode,
+  Image
 } from '@chakra-ui/react';
 import { MoonIcon, SunIcon } from '@chakra-ui/icons';
 import { Link } from 'react-router-dom';
@@ -29,14 +30,22 @@ export default function Header() {
     >
       <Flex align="center" justify="space-between" maxW="container.xl" mx="auto">
         <Link to="/">
-          <Heading 
-            as="h1" 
-            size="md" 
-            color="brand.500"
-            _hover={{ color: 'brand.600' }}
-          >
-            HPC Framework Recommender
-          </Heading>
+          <Flex align="center" gap={2}>
+            <Image 
+              src="/favicon.svg" 
+              alt="HPC Logo" 
+              boxSize="30px"
+              objectFit="contain"
+            />
+            <Heading 
+              as="h1" 
+              size="md" 
+              color="brand.500"
+              _hover={{ color: 'brand.600' }}
+            >
+              HPC Framework Recommender
+            </Heading>
+          </Flex>
         </Link>
         
         <IconButton

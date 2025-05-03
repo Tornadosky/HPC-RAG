@@ -13,7 +13,7 @@ export default function ProgressBar() {
           Progress
         </Text>
         <Text fontWeight="medium" fontSize="sm">
-          {Math.round(progressPercentage)}%
+          Step {step} of 3
         </Text>
       </Flex>
       

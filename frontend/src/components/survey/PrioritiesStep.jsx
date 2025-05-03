@@ -116,7 +116,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
               Low
             </SliderMark>
-            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+            <SliderMark value={5} mt={2} ml={-10} fontSize="sm">
               Critical
             </SliderMark>
             <SliderTrack>
@@ -162,7 +162,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
               Low
             </SliderMark>
-            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+            <SliderMark value={5} mt={2} ml={-10} fontSize="sm">
               Critical
             </SliderMark>
             <SliderTrack>
@@ -208,7 +208,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
               Low
             </SliderMark>
-            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+            <SliderMark value={5} mt={2} ml={-10} fontSize="sm">
               Critical
             </SliderMark>
             <SliderTrack>
@@ -282,13 +282,23 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             How would you rate your team's experience with GPU programming?
           </FormHelperText>
           
-          <ButtonGroup isAttached variant="outline" size="md" mt={2}>
+          <ButtonGroup 
+            isAttached={false} 
+            variant="outline" 
+            size={{ base: "sm", md: "md" }} 
+            mt={2}
+            display="flex"
+            flexWrap="wrap"
+            gap={2}
+          >
             <Button
               onClick={() => handleSkillLevelChange(0)}
               isActive={surveyData.gpu_skill_level === 0}
               colorScheme={surveyData.gpu_skill_level === 0 ? "brand" : "gray"}
               borderRadius="md"
-              px={4}
+              px={{ base: 2, sm: 3, md: 4 }}
+              flexGrow={{ base: 1, sm: 0 }}
+              minW={{ base: "auto", sm: "80px" }}
             >
               None
             </Button>
@@ -296,8 +306,10 @@ export default function PrioritiesStep({ onNext, onPrev }) {
               onClick={() => handleSkillLevelChange(1)}
               isActive={surveyData.gpu_skill_level === 1}
               colorScheme={surveyData.gpu_skill_level === 1 ? "brand" : "gray"}
-              borderRadius="none"
-              px={4}
+              borderRadius="md"
+              px={{ base: 2, sm: 3, md: 4 }}
+              flexGrow={{ base: 1, sm: 0 }}
+              minW={{ base: "auto", sm: "80px" }}
             >
               Basic
             </Button>
@@ -305,8 +317,10 @@ export default function PrioritiesStep({ onNext, onPrev }) {
               onClick={() => handleSkillLevelChange(2)}
               isActive={surveyData.gpu_skill_level === 2}
               colorScheme={surveyData.gpu_skill_level === 2 ? "brand" : "gray"}
-              borderRadius="none"
-              px={4}
+              borderRadius="md"
+              px={{ base: 2, sm: 3, md: 4 }}
+              flexGrow={{ base: 1, sm: 0 }}
+              minW={{ base: "auto", sm: "80px" }}
             >
               Intermediate
             </Button>
@@ -315,7 +329,9 @@ export default function PrioritiesStep({ onNext, onPrev }) {
               isActive={surveyData.gpu_skill_level === 3}
               colorScheme={surveyData.gpu_skill_level === 3 ? "brand" : "gray"}
               borderRadius="md"
-              px={4}
+              px={{ base: 2, sm: 3, md: 4 }}
+              flexGrow={{ base: 1, sm: 0 }}
+              minW={{ base: "auto", sm: "80px" }}
             >
               Expert
             </Button>
@@ -331,30 +347,34 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             Select the programming models your team is most comfortable with.
           </FormHelperText>
           
-          <Wrap spacing={4}>
-            <WrapItem>
+          <Wrap spacing={{ base: 2, sm: 4 }} direction={{ base: "column", sm: "row" }}>
+            <WrapItem width={{ base: "100%", sm: "auto" }}>
               <Tag 
-                size="lg" 
+                size={{ base: "md", md: "lg" }}
                 variant={surveyData.pref_directives === 1 ? 'solid' : 'outline'} 
                 colorScheme={surveyData.pref_directives === 1 ? 'brand' : 'gray'}
                 cursor="pointer"
                 onClick={toggleDirectives}
                 px={3}
                 py={2}
+                width={{ base: "100%", sm: "auto" }}
+                justifyContent={{ base: "center", sm: "flex-start" }}
               >
                 <TagLeftIcon as={GrDirections} />
                 <TagLabel>Pragmas (OpenMP/OpenACC)</TagLabel>
               </Tag>
             </WrapItem>
-            <WrapItem>
+            <WrapItem width={{ base: "100%", sm: "auto" }}>
               <Tag 
-                size="lg" 
+                size={{ base: "md", md: "lg" }}
                 variant={surveyData.pref_kernels === 1 ? 'solid' : 'outline'} 
                 colorScheme={surveyData.pref_kernels === 1 ? 'brand' : 'gray'}
                 cursor="pointer"
                 onClick={toggleKernels}
                 px={3}
                 py={2}
+                width={{ base: "100%", sm: "auto" }}
+                justifyContent={{ base: "center", sm: "flex-start" }}
               >
                 <TagLeftIcon as={VscSymbolNamespace} />
                 <TagLabel>Kernel API (CUDA/HIP/OpenCL)</TagLabel>
@@ -362,6 +382,53 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             </WrapItem>
           </Wrap>
         </FormControl>
+        
+        {/* Framework logos section */}
+        <Box mt={6}>
+          <Text fontSize="md" fontWeight="medium" mb={3}>Supported Frameworks:</Text>
+          <Wrap spacing={6}>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/cuda-logo.png" alt="CUDA" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/opencl-logo.png" alt="OpenCL" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/sycl-logo.png" alt="SYCL" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/openmp-logo.png" alt="OpenMP" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/openacc-logo.png" alt="OpenACC" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/kokkos-logo.png" alt="Kokkos" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/raja-logo.webp" alt="RAJA" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
+                <img src="/images/hip-bg.png" alt="HIP" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+          </Wrap>
+        </Box>
         
         <HStack justifyContent="space-between" width="100%" mt={8}>
           <Button

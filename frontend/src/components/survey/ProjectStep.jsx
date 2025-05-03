@@ -184,25 +184,28 @@ export default function ProjectStep({ onPrev }) {
           </Alert>
         )}
         
-        <HStack justifyContent="space-between" width="100%" mt={8}>
+        <HStack justifyContent="space-between" width="100%" mt={8} flexWrap={{ base: "wrap", md: "nowrap" }} gap={4}>
           <Button
-            size="lg"
+            size={{ base: "md", lg: "lg" }}
             variant="outline"
             leftIcon={<FaArrowLeft />}
             onClick={onPrev}
             isDisabled={submitting}
+            width={{ base: "100%", md: "auto" }}
           >
             Back
           </Button>
           <Button
-            size="lg"
+            size={{ base: "md", lg: "lg" }}
             colorScheme="brand"
             rightIcon={submitting ? <Spinner size="sm" /> : <FaCheck />}
             onClick={handleSubmit}
             isLoading={submitting}
             loadingText="Analyzing..."
+            width={{ base: "100%", md: "auto" }}
+            fontSize={{ base: "sm", md: "md" }}
           >
-            Get Recommendations
+            Get Results
           </Button>
         </HStack>
       </VStack>

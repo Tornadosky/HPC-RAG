@@ -31,6 +31,9 @@ export default function TopFrameworkCard({ topFramework, probability, explanatio
     description: 'A parallel programming framework'
   };
   
+  // Generate background image path based on framework name
+  const bgImagePath = `/images/${framework.toLowerCase()}-bg.png`;
+  
   // Animate the spinner -> logo transition
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,36 +49,63 @@ export default function TopFrameworkCard({ topFramework, probability, explanatio
       borderWidth="1px" 
       borderColor={borderColor} 
       borderRadius="lg"
-      p={6}
+      p={{ base: 4, md: 6 }}
       boxShadow="lg"
       width="100%"
       position="relative"
       overflow="hidden"
     >
-      {/* Background accent */}
+      {/* Background image for all frameworks */}
       <Box
         position="absolute"
         top={0}
         right={0}
         bottom={0}
-        width="30%"
-        bgGradient={`linear(to-br, ${frameworkData.color}33, ${frameworkData.color}11)`}
+        width={{ base: "30%", md: "25%" }}
         zIndex={0}
+        backgroundImage={`url('${bgImagePath}')`}
+        backgroundSize="cover"
+        backgroundPosition="right center"
+        backgroundRepeat="no-repeat"
+        display={{ base: "none", sm: "block" }}
+        // Fallback to gradient if image fails to load
+        sx={{
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: `linear-gradient(to bottom right, ${frameworkData.color}33, ${frameworkData.color}11)`,
+            opacity: 0,
+            transition: 'opacity 0.3s',
+            zIndex: -1
+          },
+          '&.error::after': {
+            opacity: 1
+          }
+        }}
+        onError={(e) => e.target.classList.add('error')}
       />
       
       <MotionFlex 
         direction={{ base: 'column', md: 'row' }}
-        align="center"
+        align={{ base: "flex-start", md: "center" }}
         justify="space-between"
-        gap={6}
+        gap={{ base: 4, md: 6 }}
         zIndex={1}
         position="relative"
       >
-        <Box>
+        <Box 
+          width={{ base: "100%", md: "100%" }}
+          mb={{ base: 0, sm: 0 }}
+          pr={{ base: 0, sm: "30%", md: "30%" }}
+        >
           <Badge
             colorScheme={badgeColorScheme}
             mb={2}
-            fontSize="sm"
+            fontSize={{ base: "xs", md: "sm" }}
             borderRadius="full"
             px={3}
             py={1}
@@ -85,7 +115,7 @@ export default function TopFrameworkCard({ topFramework, probability, explanatio
           
           <MotionHeading 
             as="h2" 
-            size="xl" 
+            size={{ base: "lg", md: "xl" }}
             mb={2}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -99,100 +129,42 @@ export default function TopFrameworkCard({ topFramework, probability, explanatio
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            <Text fontSize="2xl" fontWeight="bold" color={frameworkData.color}>
+            <Text 
+              fontSize={{ base: "xl", md: "2xl" }} 
+              fontWeight="bold" 
+              color={frameworkData.color}
+            >
               {probability > 1 ? Math.round(probability) : Math.round(probability * 100)}% match
             </Text>
             
-            <Text fontSize="md" mt={4} maxW="600px">
+            <Text 
+              fontSize={{ base: "sm", md: "md" }} 
+              mt={4}
+            >
               {explanation}
             </Text>
             
-            <Text fontSize="sm" mt={4} color="gray.500">
+            <Text 
+              fontSize={{ base: "xs", md: "sm" }} 
+              mt={4} 
+              color="gray.500"
+            >
               {frameworkData.description}
             </Text>
             
             <Button
               colorScheme="brand"
-              size="md"
-              mt={6}
+              size={{ base: "sm", md: "md" }}
+              mt={{ base: 4, md: 6 }}
               leftIcon={<DownloadIcon />}
               isDisabled
               _hover={{ cursor: 'not-allowed' }}
+              display={{ base: "none", md: "flex" }}
             >
               Download {framework} Starter Template
             </Button>
           </MotionBox>
         </Box>
-        
-        <Flex 
-          justify="center" 
-          align="center" 
-          minW="150px" 
-          minH="150px"
-        >
-          {!showLogo ? (
-            <MotionBox
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0 }}
-              transition={{ delay: 0.8 }}
-            >
-              <Spinner 
-                size="xl" 
-                thickness="4px"
-                color="brand.500"
-              />
-            </MotionBox>
-          ) : (
-            <MotionBox
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-            >
-              {frameworkData.logo ? (
-                <Image 
-                  src={frameworkData.logo} 
-                  alt={`${framework} logo`} 
-                  maxW="150px"
-                  maxH="100px"
-                  objectFit="contain"
-                  fallback={
-                    <Box 
-                      width="150px" 
-                      height="100px" 
-                      bg={frameworkData.color} 
-                      color="white"
-                      textAlign="center"
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      fontWeight="bold"
-                      fontSize="xl"
-                      borderRadius="md"
-                    >
-                      {framework}
-                    </Box>
-                  }
-                />
-              ) : (
-                <Box 
-                  width="150px" 
-                  height="100px" 
-                  bg={frameworkData.color} 
-                  color="white"
-                  textAlign="center"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  fontWeight="bold"
-                  fontSize="xl"
-                  borderRadius="md"
-                >
-                  {framework}
-                </Box>
-              )}
-            </MotionBox>
-          )}
-        </Flex>
       </MotionFlex>
     </Box>
   );
