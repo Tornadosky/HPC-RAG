@@ -1,0 +1,9 @@
+hw_cpu,hw_nvidia,hw_amd,hw_other,need_cross_vendor,perf_weight,port_weight,eco_weight,pref_directives,pref_kernels,greenfield,gpu_extend,cpu_port,domain_ai_ml,domain_hpc,domain_climate,domain_embedded,domain_graphics,domain_data_analytics,domain_other,lockin_tolerance,gpu_skill_level
+1,1,0,0,0,0.95,0.20,0.92,0,1,1,0,0,1,0,0,0,0,0,0,0.90,3
+1,0,1,0,0,0.83,0.40,0.68,0,1,0,1,0,0,1,0,0,0,0,0,0.70,2
+1,1,1,0,1,0.65,0.90,0.55,0,1,1,0,0,0,1,0,0,0,0,0,0.35,1
+1,1,1,0,1,0.78,0.82,0.60,0,1,1,0,0,1,0,0,0,0,0,0,0.45,2
+1,1,1,0,1,0.82,0.70,0.72,0,1,1,0,0,0,1,0,0,0,0,0,0.50,2
+1,1,1,0,1,0.85,0.75,0.88,0,1,1,0,0,0,1,0,0,0,0,0,0.55,2
+0,1,1,0,1,0.75,0.55,0.65,1,0,1,0,0,0,0,1,0,0,0,0,0.40,2
+1,0,0,0,1,0.62,0.88,0.80,1,0,0,0,1,0,1,0,0,0,0,0,0.30,1 
