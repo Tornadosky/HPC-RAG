@@ -424,6 +424,11 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             </WrapItem>
             <WrapItem>
               <Box maxW="80px">
+                <img src="/images/alpaka-logo.png" alt="ALPAKA" width="100%" style={{ borderRadius: '4px' }} />
+              </Box>
+            </WrapItem>
+            <WrapItem>
+              <Box maxW="80px">
                 <img src="/images/hip-bg.png" alt="HIP" width="100%" style={{ borderRadius: '4px' }} />
               </Box>
             </WrapItem>

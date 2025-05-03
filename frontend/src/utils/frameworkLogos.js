@@ -39,6 +39,11 @@ export const frameworkInfo = {
     logo: '/images/openmp-logo.png',
     color: '#2A7AB5',  // OpenMP blue
     description: 'API for multi-platform shared-memory parallel programming'
+  },
+  ALPAKA: {
+    logo: '/images/alpaka-logo.png',
+    color: '#03fcf4',  // Turquoise color for ALPAKA
+    description: 'C++ abstraction library for heterogeneous parallelism with high portability'
   }
 };
 
