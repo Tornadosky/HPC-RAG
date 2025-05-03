@@ -2,6 +2,8 @@
 *.pdf
 *.html
 *.json
+*.sqlite3
+*.bin
 
 # Python
 __pycache__/

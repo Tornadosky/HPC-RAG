@@ -11,11 +11,18 @@ services:
     volumes:
       - ./api:/app
       - ./model.joblib:/app/model.joblib
+      - ./api/data:/app/data
     command: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - app-network
     environment:
       - PYTHONUNBUFFERED=1
+      - LLM_BASE_URL=http://ollama:11434/v1
+      - LLM_MODEL=llama3
+      - EMBED_MODEL=all-MiniLM-L6-v2
+      - CHROMA_PATH=/app/data/chroma_db
+    depends_on:
+      - ollama
 
   # Frontend
   frontend:
@@ -45,9 +52,46 @@ services:
     depends_on:
       - api
       - frontend
+      - streamlit
     networks:
       - app-network
 
+  # Ollama LLM service
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Streamlit RAG Demo
+  streamlit:
+    build:
+      context: .
+      dockerfile: streamlit.Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./streamlit_rag.py:/app/streamlit_rag.py
+    environment:
+      - API_URL=http://api:8000
+    networks:
+      - app-network
+    depends_on:
+      - api
+
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  ollama_data: 

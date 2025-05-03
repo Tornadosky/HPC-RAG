@@ -63,7 +63,7 @@ npm run dev
 ## Usage
 
 1. Start the application
-2. Navigate to http://localhost:3000
+2. Navigate to `http://localhost:3000`
 3. Click "Start the Survey"
 4. Answer questions about your hardware, priorities, and project
 5. View your personalized framework recommendations
@@ -72,7 +72,7 @@ npm run dev
 
 When running the backend, access the Swagger documentation at:
 
-```
+```bash
 http://localhost:8000/docs
 ```
 

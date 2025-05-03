@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import pandas as pd
@@ -7,6 +8,10 @@ import numpy as np
 import joblib
 import os
 import pathlib
+from sse_starlette.sse import EventSourceResponse
+
+# Import RAG functionality
+from rag import get_rag_system
 
 app = FastAPI(title="HPC Framework Recommender API", 
              description="API for recommending HPC frameworks based on user preferences")
@@ -53,6 +58,16 @@ class FrameworkRanking(BaseModel):
 class PredictionResponse(BaseModel):
     ranking: List[FrameworkRanking]
     explanation: str
+
+# New models for the RAG chat endpoint
+class ChatRequest(BaseModel):
+    question: str
+    profile: Dict[str, Any]
+    ranking: List[Dict[str, Any]]
+
+class ChatResponse(BaseModel):
+    answer: str
+    citations: List[str]
 
 # Find the model file (search in parent directory if not in current directory)
 def find_model_file():
@@ -169,7 +184,7 @@ def generate_explanation(input_data, top_framework, probabilities, classes):
 
 @app.get("/")
 async def root():
-    return {"message": "HPC Framework Recommender API is running. Use /predict to get recommendations."}
+    return {"message": "HPC Framework Recommender API is running. Use /predict to get recommendations and /chat for RAG-assisted responses."}
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(request: FrameworkRequest):
@@ -242,6 +257,69 @@ async def predict(request: FrameworkRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+
+@app.post("/index-pdfs")
+async def index_pdfs(background_tasks: BackgroundTasks):
+    """Endpoint to trigger PDF indexing (async task)"""
+    try:
+        # Get the RAG system
+        rag_system = get_rag_system()
+        
+        # Define the PDF directory
+        pdf_directory = os.path.join(os.path.dirname(__file__), "data", "pdfs")
+        
+        # Queue the indexing task in the background
+        background_tasks.add_task(rag_system.index_pdfs, pdf_directory)
+        
+        return {"message": f"PDF indexing started in the background for directory: {pdf_directory}"}
+    except Exception as e:
+        print(f"Error starting PDF indexing: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error starting PDF indexing: {str(e)}")
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest, stream: bool = Query(False)):
+    """Chat endpoint using RAG for enhanced responses"""
+    try:
+        # Get the RAG system
+        rag_system = get_rag_system()
+        
+        # Handle streaming response
+        if stream:
+            async def event_generator():
+                try:
+                    response_stream = rag_system.query(
+                        request.question,
+                        request.profile,
+                        request.ranking,
+                        stream=True
+                    )
+                    
+                    for token in response_stream:
+                        if token:
+                            yield {"data": token}
+                except Exception as e:
+                    print(f"Error in stream: {str(e)}")
+                    yield {"data": f"Error: {str(e)}"}
+            
+            return EventSourceResponse(event_generator())
+        
+        # Regular non-streaming response
+        response = rag_system.query(
+            request.question,
+            request.profile,
+            request.ranking,
+            stream=False
+        )
+        
+        return ChatResponse(
+            answer=response["answer"],
+            citations=response["citations"]
+        )
+    except Exception as e:
+        print(f"Error in chat endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
