@@ -1,0 +1,530 @@
+26 Feb 2016
+
+Alpaka – An Abstraction Library for Parallel Kernel Acceleration∗
+March 27, 2018
+
+Abstract
+
+Keywords. Heterogeneous computing, HPC, C++,
+CUDA, OpenMP, platform portability, performance
+Porting applications to new hardware or program- portability
+ming models is a tedious and error prone process.
+Every help that eases these burdens is saving develIntroduction
+oper time that can then be invested into the advance- 1
+ment of the application itself instead of preserving the
+status-quo on a new platform.
+1.1 Motivation
+The Alpaka library defines and implements an abPerformance gain by employing parallelism in softstract hierarchical redundant parallelism model. The
+ware nowadays faces a variety of obstacles. Parallel
+model exploits parallelism and memory hierarchies
+performance currently relies on the efficient use of
+on a node at all levels available in current hardware.
+many-core architectures that are commonly found in
+By doing so, it allows to achieve platform and perfora heterogeneous environment of multi-core CPU and
+mance portability across various types of accelerators
+many-core accelerator hardware.
+by ignoring specific unsupported levels and utilizing
+Heterogeneous systems often expose a memory hionly the ones supported on a specific accelerator. All
+erarchy that has to be used efficiently as high comhardware types (multi- and many-core CPUs, GPUs
+putational performance usually requires high memory
+and other accelerators) are supported for and can be
+throughput, demanding the development of efficient
+programmed in the same way. The Alpaka C++ temcaching strategies by application developers.
+plate interface allows for straightforward extension of
+The same developers face a variety of parallel comthe library to support other accelerators and specialputing
+models either specific to a certain hardware or
+ization of its internals for optimization.
+with limited control over optimization. Many models
+Running Alpaka applications on a new (and supaim for providing easy to learn interfaces that hide
+ported) platform requires the change of only one
+the complexities of memory management and paralsource code line instead of a lot of #ifdefs.
+lel execution while promising performance portability, but ultimately fall short of at least one of their
+∗ This project has received funding from the European
+Unions Horizon 2020 research and innovation programme un- aims.
+der grant agreement No 654220
+Due to the Herculean effort associated with maintaining a multi-source application even large development teams thus usually have to choose a strategy
+of trading performance for portability or vice versa
+by choosing one single programming model.
+Alpaka was designed to prevent this trade off by
+providing a single source abstract interface that exposes all levels of parallelism existent on today’s heterogeneous systems. Alpaka heavily relies on existing parallelism models, but encapsulates them via a
+redundant mapping of its abstract parallelization hierarchy [4] to a specific hardware, allowing for mixing various models in a single source C++ code at
+runtime. Thus, hardware-specific optimizations are
+possible without the necessity for code replication.
+Alpaka therefore is open to future performance optimizations while providing portable code. This is
+only possible as Alpaka relies on the developers ability to write parallel code by explicitly exposing all
+information useful for defining parallel execution in
+a heterogeneous environment rather than hiding the
+complexities of parallel programming.
+Moreover, Alpaka limits itself to a simple, pointer
+based memory model that requires explicit deep
+copies between memory levels. This puts the developer in the position to develop portable parallel
+caching strategies without imposing restrictions on
+the memory layout. Thus, developers achieve performance portability by skillful code design for which
+Alpaka provides a single source, explicit redundant
+parallelism model without any intrinsic optimization
+hidden from the user.
+In the following, we define some categories in order to compare Alpaka to existing models for parallel
+programming.
+Openness By Openness we refer to models licensed as open source or defined by an open standard.
+Single source A model that provides for single
+source code allows for the application code to be written in a single programming language. It furthermore does not require extensive multiple compilation
+branches with varying implementations of an algorithm specific to a certain hardware. Single source
+models may provide annotations (e.g. compiler directives) or add defined words to the language that
+describe parallel execution.
+
+Sustainability We define a sustainable parallel
+programming model as a model where the porting
+of an algorithm to another hardware requires minimum changes to the algorithmic description itself.
+Sustainable models furthermore should be adaptable
+to future hardware and be available for at least two
+varieties of current hardware architectures.
+Heterogeneity Parallel programming models
+map to heterogeneous systems if they allow for developing a single source code in such a way that
+execution on various hardware architectures requires
+minimum specific changes (e.g. offloading, memory
+scope), execution of a single algorithmic implementation on various architectures can happen in the same
+program and at the same time during run time.
+Maintainability We define a parallel programming model to serve code maintainability if it provides a single source code that is sustainable and
+allows for execution on heterogeneous hardware by
+changing or extending the programming model rather
+than the application source code.
+Testability A model provides testability if an algorithmic implementation can be tested on a specific
+hardware and give, in a lose sense, the same results
+when migrating to another hardware. Testability requires sustainability, heterogeneity and maintainability but furthermore demands a separation of the algorithmic description from hardware specific features.
+Optimizability We define an optimizable model
+by the fact that it provides the user with complete
+control over the parallelization of the algorithm as
+well as the memory hierarchy in a heterogeneous system. Furthermore, fine-tuning algorithmic performance to a specific hardware should not force developers to write multiple implementations of the same
+algorithm, but rather be provided for by the model.
+Data structure agnostic A data structure agnostic model does not restrict the memory layout, it
+instead provides full control over the memory allocation and layout on all hierarchy levels, exposes deep
+copies between levels and does not assume a certain
+distribution of the memory over the various hierarchy
+levels. Specifically, it does not provide distributed
+data types that are intertwined with the parallelization scheme itself.
+Performance Portability A model provides per2
+
+formance portability if for a given single source sustainable and maintainable implementation of an algorithm the hardware utilization on various systems
+is the same within reasonable margins, taking into account the limitations of the specific hardware. Performance portability does not require optimum utilization of the hardware.
+to LLVM translator. The project is not in active development anymore and only supports PTX up to
+version 3.1 while the current version is 4.2. Thus, it
+is in many respects similar to PGI CUDA-X86.
+OpenMP2 is an open specification for vendor agnostic shared memory parallelization which allows to
+easily parallelize existing sequential C/C++/Fortran
+code in an incremental manner by adding annotations (pragmas in C/C++) to loops or regions. Up
+to version 4.5 there is no way to allocate device memory that is persistent between kernel calls in different
+methods because it is not possible to create a device
+data region spanning both functions in the general
+case. Currently OpenMP does not allow for controlling the hierarchical memory as its main assumption
+is a shared memory pool for all threads. Therefore,
+the block shared memory on CUDA devices cannot
+be explicitly utilized and both heterogeneity and optimizability are not provided for.
+OpenACC3 is an open pragma based programming standard for heterogeneous computing which is
+very similar to OpenMP and provides annotations
+for parallel execution and data movement as well as
+run-time functions for accelerator and device management. It allows for limited access to CUDA block
+shared memory but does not support dynamic allocation of memory in kernel code. It thus does not
+provide for optimizability and in a practical sense,
+due to the very limited number of implementations,
+heterogeneity and sustainability.
+OpenCL4 is an open programming framework for
+heterogeneous platforms. It supports heterogeneity
+as it can utilize CPUs and GPUs of nearly all vendors.
+Versions prior to 2.1 (released in March 2015) did
+only support a C-like kernel language. Version 2.1
+introduced a subset of C++14, but there are still no
+compilers available. OpenCL thus does not support
+single source programming. Furthermore, it does not
+allow for dynamic allocation of memory in kernel code
+and thus does not fully support optimizability.
+SYCL5 is an open cross-platform abstraction layer
+based on OpenCL and thus shares most deficiencies
+
+Related Work
+
+In the following we briefly discuss other libraries targeting the portable parallel task execution within
+nodes. Some of them require language extensions,
+others advertise performance portability across a
+multitude of devices. However, none of these libraries
+can provide full control over the possibly diverse underlying hardware while being only minimally invasive. Furthermore, many of the libraries do not satisfy the requirement for full single-source (C++) support.
+CUDA[3] is a parallel computing platform and
+programming model developed by NVIDIA. The user
+is bound to the usage of NVIDIA GPUs. CUDA is
+not open source and does not provide for Sustainability, heterogeneity, maintainability and testability.
+For CUDA enabled hardware it provides for optimizability.
+PGI CUDA-X861 is a compiler technology that
+allows to generate x86-64 binary code from CUDA
+C/C++ applications using the CUDA runtime API
+but does not support the CUDA driver API. Compared to CUDA it allows for heterogeneity, maintainability and testability, but it currently falls behind in
+adapting to the latest CUDA features, thus has limited support for sustainability. As it does not provide
+for control of optimzations for X86 architectures, it
+lacks optimizability.
+GPU Ocelot[2] is an open source dynamic JIT
+compilation framework based on llvm which allows to
+execute native CUDA binaries by dynamically translating the NVIDIA PTX virtual instruction set architecture to other instruction sets. It supports NVIDIA
+and AMD GPUs as well as multicore CPUs via a PTX
+with OpenCL, however it in principle would allow for
+optimizability. In contrast to OpenCL it allows for
+single source heterogeneous programs, but as of now
+there is no usable free compiler implementation available that has good support for multiple accelerator
+devices, thus it currently lacks sustainability.
+
+Introduction to Alpaka
+
+This section serves as an introduction to Alpaka. It
+first explains the conceptual ideas behind Alpaka,
+then provides an overview of the hardware abstraction model of Alpaka as well as how the model is
+mapped to real devices. Lastly, the Alpaka programming API is described.
+
+C++ AMP6 is an open specification from Microsoft which is implemented on top of DirectX 11
+and thus currently limited in terms of heterogeneity, sustainability and testability. It is a language
+extension requiring compiler support that allows to
+annotate C++ code that then can be run on multiple accelerators. It lacks full control of parallel execution and memory hierarchy and thus falls
+short of supporting optimizability. Due to restrictions on data types that provide for portability (see
+e.g. concurrency::array) it is not data structure
+agnostic.
+
+3.1
+
+Conceptual Overview
+
+Alpaka provides a single abstract C++ interface to
+describe parallel execution across multiple levels of
+the parallelization hierarchy on a single compute
+node. Each level of the Alpaka parallelization hierarchy is unrestricted in its dimensionality. In addition,
+Alpaka uses the offloading model, which separates the
+host from the accelerator device.
+In order to execute Alpaka code on different hardware the interface is currently implemented using various parallelism models such as OpenMP, CUDA,
+C++ threads and boost fibers. Alpaka interface implementations, called back-ends, are not limited to
+these choices and will in the future be extended by
+e.g. Thread Building Blocks. By design, new backends can be added to Alpaka. Thus, Alpaka allows
+for mixing parallelization models in a single source
+program, thereby enabling the user to choose the implementation that is best suited for a given choice
+of hardware and algorithm. It even enables running
+multiple of the same or different back-end instances
+simultaneously, e.g. to utilize all cores on a device as
+well as all accelerators concurrently.
+The Alpaka library is based on the C++11 standard without any language extensions and makes extensive usage of C++ template meta-programming.
+Algorithms are written in-line with single source code
+and are called kernels which can be compiled to multiple platform back-ends by simply selecting the appropriate back-end. The actual back-ends that execute an algorithm can, thus, be selected at configure-,
+compile- or run-time, making it possible to run an algorithm on multiple back-ends in one binary at the
+same time.
+Alpaka does not automatically optimize data accesses or data transfers between devices. Data are
+
+KOKKOS7 is an open source abstract interface for portable, high-performance shared memoryprogramming and in many ways similar to Alpaka.
+However, kernel arguments have to be stored in members of the function object coupling algorithm and
+data together. It thus is not data structure agnostic
+and in this sense limited in its optimizability
+Thrust[1] is an open source parallel algorithms library resembling the C++ Standard Template Library (STL) which is available for CUDA, Thread
+Building Blocks8 and OpenMP back-ends at maketime. Its container objects are tightly coupled with
+the parallelization strategy, therefore Thrust is not
+data structure agnostic. Thrust aims at hiding the
+memory hierarchy and is limited in expressing parallel execution, thus it cannot achieve full optimizability.
+Table 1 provides a summary of all related work and
+a comparison to Alpaka. stored in simple buffers with support for copies between devices and access to memory is completely
+data structure agnostic. Thus, the user needs to take
+care of distribution of data between devices.
+Alpaka does neither automatically decompose the
+algorithmic execution domain and data domain, nor
+does it assume any default or implicit states such
+as default device, current device, default stream, implicit built-in variables and functions.
+
+Model of Parallel Abstraction
+
+Alpaka abstracts data parallelism following the redundant hierarchical parallelism model [4], thereby
+enabling the developer to explicitly take the hierarchy of processing units, their data parallel features
+and corresponding memory regions into account. The
+Alpaka abstraction of parallelization is influenced
+by and based on the groundbreaking CUDA and
+OpenCL abstractions9 of a multidimensional grid of
+threads with additional hierarchy levels in between.
+Furthermore, it is amended with additional vectorization capabilities.
+The four main hierarchies introduced by Alpaka
+are called grid, block, thread and element level, shown
+in Figure 1 together with their respective parallelization and synchronization features as discussed below.
+Each parallelization level corresponds to a particular memory level (Figure 2): global mem-
+
+Sequential
+
+Figure 1: The Alpaka parallelization hierarchy consists of a grid of blocks, where each block consists of
+threads and each thread processes multiple elements.
+Both threads and grids are able to synchronize.
+
+ory (grid), shared memory (block) and register memory (thread).
+The Alpaka model enables to separate the parallelization strategy from the algorithm. The algorithm
+is described by kernel functions that are executed by
+threads. A kernel is the common set of instructions
+executed by all threads on a grid.
+The parallelization strategy is described by the
+accelerator and the work division (See Section 3.3
+and 3.4). An accelerator defines the acceleration
+strategy by a mapping of the parallelization levels
+
+Both, CUDA and OpenCL are industry standards for accelerator programming.
+
+
+of each other and can thus be executed either sequentially or in parallel. Threads can be synchronized to
+each other via explicit synchronization evoked in the
+code. Threads can by default always access their private registers, the shared memory of the block and
+the global memory10 . All variables within the default scope of a kernel are stored within register memory and are not shared between threads. Shared and
+global memory can be allocated statically or at runtime before the kernel start.
+Figure 2: The memory hierarchy of the Alpaka abstraction model. Threads have exclusive access to 3.2.4 Element
+fast register memory. All threads in a block can access the same shared memory. All blocks in a grid The element level represents an n-dimensional set of
+elements and unifies the data parallel capabilities of
+can access the same global memory.
+modern hardware architectures e.g. vectorization on
+thread level. This is necessary as current compilers
+to the hardware. The device is the actual hardware
+do not support automatic vectorization of basic, non
+onto which these levels are mapped.
+trivial loops containing control flow statements (e.g.
+if, else, for) or non-trivial memory operations. Furthermore, vectorization intrinsics as they are avail3.2.1 Gridable in intrin.h, arm neo.h, altivec.h are not portable
+across varying back-ends. Alpaka therefore currently
+A grid is an n-dimensional set of blocks with a usually relies on compiler recognition of vectorizable code
+large global memory accessible by all threads in all parts. Code is refactored in such a way that it inblocks. Grids are independent of each other and can cludes primitive inner loops over a fixed number of
+thus be executed either sequentially or in parallel. elements.
+Grids can be synchronized to each other via explicit
+The user is free to sequentially loop over the elsynchronization evoked in the code.
+ements or to utilize vectorization where a single instruction is applied to multiple data elements in parallel e.g. by utilizing SIMD vector registers. Process3.2.2 Block
+ing multiple elements per thread on some architecA block is an n-dimensional set of threads with a high tures may enhance caching.
+bandwidth, low latency but small amount of shared
+memory. All blocks on a grid are independent of each
+other and can thus be executed either sequentially or 3.3 Mapping of Abstraction to Hardin parallel. Blocks cannot be synchronized to each
+ware
+other. The shared memory can only be accessed explicitly by threads within the same block and gets Alpaka clearly separates its parallelization abstracdiscarded after the complete block has finished its tion from the specific hardware capabilities by an
+explicit mapping of the parallelization levels to the
+calculation.
+hardware. A major point of the hierarchical parallelism abstraction is to ignore specific unsupported
+3.2.3 Thread
+levels of the model and utilize only the ones supA thread represents the execution of a sequence of
+instructions. All threads in a block are independent
+ However, Alpaka allows for atomic operations that serialize thread access to global memory.
+
+ported on a particular device. Mapping is left to the
+implementation of the accelerator.
+This allows for variable mappings as shown in the
+examples below and, therefore, an optimum usage of
+the underlying compute and memory capabilities—
+albeit with two minor limitations: The grid level is
+always mapped to the whole device being in consideration and the kernel scheduler can always execute
+multiple kernel grids from multiple streams in parallel
+by statically or dynamically subdividing the available
+resources.
+Figure 3 shows a mapping of the Alpaka abstraction model onto a CPU, a many integrated cores device (MIC) and a GPU architecture. For the MIC
+architecture a second mapping is shown, which spans
+a block over all cores to increase the shared memory.
+CPU and MIC process multiple elements per thread
+and benefit from their vectorization units, while a
+GPU thread processes only a small amount of elements.
+
+Performance
+
+As a next step, the performance characteristics of
+the CUDA and OpenMP Alpaka back-ends are evaluated. First, an algorithm is implemented for both
+Alpaka and the particular native API to show the
+pure Alpaka overhead in numbers. Then, the native Alpaka kernel is mapped to the non-native backend to show that Alpaka is not naı̈vely performance
+portable. Afterwards, an enhanced single source Alpaka kernel is introduced and mapped to various architectures and it is shown that it can match the performance of the native implementations when using
+the appropriate Alpaka back-ends.
+For comparison the double generalized matrixmatrix-multiplication (DGEMM) has been selected
+as a compute bound problem. DGEMM computes
+Table 3: List of utilized accelerator hardware for evaluation. Clock frequencies which are encapsulated in
+braces denote the turbo frequency of the particular architecture. Often turbo can only be utilized when not
+all cores of a device are busy.
+Figure 5: The native Alpaka kernels were mapped to
+their corresponding native back-ends and compared
+to the native implementations. Both kernels show a
+relative overhead of less than 6% which is well below
+run-to-run variation. This proves the zero overhead
+abstraction of Alpaka.
+with an increasing matrix size and their execution
+time was measured. Figure 5 shows the speed of the
+Alpaka kernels mapped to the corresponding backAlpaka does not add additional overhead to the alend relative to their native implementations.
+gorithm execution time. In order to show this zero
+The native CUDA Alpaka kernel provides more
+overhead, native CUDA and OpenMP 2 kernels were
+than 94% relative performance for almost all matrix
+translated one-to-one to Alpaka kernels.
+sizes, which is an overhead of 6% or less. After a deep
+The CUDA kernels use a block parallelized tiling
+inspection of the compiled PTX code it turned out
+algorithm based on the CUDA programming guide
+that this overhead results from move and forward op([3], Sec. 3.2.3) and were executed on a compute node
+erators translated to copies. These operators are used
+with a NVIDIA K20 GK210. The OpenMP kernels
+for grid index calculations within an Alpaka kernel.
+use a standard DGEMM algorithm with nested for
+Furthermore, a small number of additional CUDA
+loops and were executed on a compute node with two
+runtime calls by the alpaka CUDA back-end are necIntel E5-2630v3 CPUs. The kernels were executed
+essary. The native OpenMP Alpaka kernel provides
+NVIDIA CUDA (nvcc) and the gcc compiler remove
+all the abstraction layers introduced by Alpaka.
+A naı̈ve port of a kernel to an architecture it was
+not meant to be executed on will almost always lead
+to poor performance. Thus, providing a single, performance portable kernel is not trivial. The following
+section shows that Alpaka is able to provide performance for various back-ends with a single source kernel.
+4.2.2
+
+Figure 6: The native Alpaka kernels with swapped
+back-ends leads to poor performance. Alpaka does
+not guarantee performance portability when data access, work division and cache hierarchies are not considered.
+One-to-one translation of a particular algorithm to
+an Alpaka kernel demonstrates a minimal amount of
+overhead compared to the native implementation on
+the same architecture. However, Alpaka does not
+guarantee that such a kernel will also show the same
+run-time characteristics when it is mapped onto another back-end, as it neither provides optimized nor
+architecture dependent data access and work division automatically. Figure 6 shows the performance
+of the previously used kernels when their back-ends
+are swapped relative to the native implementation13 .
+The Alpaka kernels originally translated from the
+opposite back-end do not perform well. There are at
+least two reasons why these mappings are not performance portable. First, the back-ends require completely different data access patterns to achieve optimum data access performance e.g. strided data access in CUDA. Second, the amount of data a single
+thread can process effectively is different because of
+different cache sizes and hierarchies and varying optimal work divisions.
+Nevertheless, it is possible to write competitive code for each back-end.
+Both, the
+13 In this case the triple nested loop is compiled using the
+CUDA back-end, while the tiled shared-memory version is
+mapped to OpenMP.
+
+Single Source Kernel / Performance
+
+It is possible to write a single source kernel that performs well on all tested Alpaka back-ends without
+a drop in performance compared to the native implementations. In order to reach this performance,
+the developer needs to abstract the access to data,
+optimize the work division, and consider cache hierarchies. The single source Alpaka DGEMM kernel implements a tiling matrix-matrix multiplication
+algorithm and considers the architecture cache sizes
+by adapting the number of elements processed per
+thread or block and the size of the shared memory to
+provide minimal access latency. A lot of processor architectures benefit from the Alpaka element level parallelism when calculating multiple elements in parallel in the vector processing unit.
+Figure 7 provides a brief description of the hierarchical tiling algorithm. A block calculates the result
+of a tile in matrix C. Each thread in this block loads
+a set of elements of matrices A and B into shared
+memory to increase memory reuse. It then calculates
+the partial results of its set of elements before the
+block continues with the next tiles of A and B.
+Figure 8 shows the performance of the tiling kernel
+mapped to the CUDA and OpenMP back-ends relative to the original native implementations. No performance loss compared to native implementations is
+observed but instead performance gain in the majority of cases is seen. This is due to the more descriptive nature of the Alpaka kernel which enables even
+further optimizations by the back-end compilers.
+It is clear that there exist even more optimized
+versions of the algorithm, e.g. in mathematical libraries such as cuBlas, which is fine tuned for differ-
+
+Figure 7: An Alpaka optimized hierarchically tiled
+matrix-matrix multiplication algorithm with multiple
+elements per thread. A block loads tiles of the A and
+B matrix into its shared memory to increase memory
+reuse. A thread can calculate multiple elements by
+using the vector processing unit of its particular backend.
+
+Figure 8: The Alpaka single source DGEMM kernel
+implements a hierarchical tiling matrix-matrix multiplication algorithm. This kernel can compete with
+and even outperform the original native implementations on all tested back-ends.
+
+model together with optimized data access patterns
+is able to provide performance portability over varient compute-capabilities of NVIDIA GPUs, or MKL,
+ous architectures.
+which is an optimized OpenMP kernel library. These
+provide higher peak performance than Alpaka, but
+may require additional setup (cuBlas data transfers) 4.3 Real World Example
+or include implicit—and maybe unwanted—data migration between the host and the device. Neverthe- HASEonGPU is an open-source adaptive massively
+less, if it should be necessary to use one of these op- parallel multi-GPU Monte Carlo integration algotimized algorithms it is possible to use them with rithm for computing the amplified spontaneous emisAlpaka as well by utilizing template specialization sion (ASE) flux in laser gain media pumped by pulsed
+lasers14 .
+within Alpaka kernels.
+The source code consists of about ten thousand
+lines of code and has been ported in three weeks by
+one person to Alpaka (HASEonAlpaka). After the
+4.2.3 Performance Portability
+porting has been finished, HASEonAlpaka has sucFigure 9 shows the performance of the Alpaka tiling cessfully been executed on GPU and CPU clusters.
+Figure 10 shows the relative speed of a HASEonkernel executed on varying architectures relative to
+Alpaka
+computation executed with identical paramethe theoretical peak performance of the correspondters
+on
+different
+systems. The original native CUDA
+ing architecture. The kernel work division was seversion
+is
+used
+as
+the basis for comparison. The Allected in a way that provides good performance for
+paka
+version
+using
+the CUDA back-end running on
+the particular architecture. CPU devices were accelthe
+same
+NVIDIA
+K20
+GK110 cluster as the native
+erated by the OpenMP 2 back-end, while NVIDIA deversion
+does
+not
+show
+any
+overhead at all leading to
+vices were accelerated by the CUDA back-end. The
+identical
+execution
+times.
+performance of all architectures lies around 20% of
+14 https://github.com/ComputationalRadiationPhysics/
+the theoretical peak performance. This shows that a
+single Alpaka kernel using all levels of the abstraction haseongpu
+
+13
+
+5
+
+performance relative to th. peak performance
+
+Performance portability with single source kernel on all architectures
+0.35
+Figure 9: Performance of the Alpaka kernel executed
+on various architectures relative to the theoretical
+peak performance of the corresponding architecture.
+The Alpaka kernel provides about 20% relative peak
+performance on all measured architectures.
+
+On the Intel Xeon E5-2630v3 and AMD Opteron
+6276 clusters the OpenMP 2 back-end without support for the not required thread level parallelism is
+used, i.e each block contains exactly one thread computing multiple elements. This perfectly maps to the
+CPUs capabilities for independent vectorized parallelism and leads to very good results. The nearly
+doubled time to solution on both, the Intel and AMD
+clusters, is on par with the halved double precision
+peak performance of those systems relative to the
+NVIDIA cluster used as reference.
+
+Conclusion
+
+We have presented the abstract C++ interface Alpaka and its implementations for parallel kernel execution across multiple hierarchy levels on a single
+compute node. We have demonstrated platform and
+performance portability for all studied use cases. A
+single source Alpaka DGEMM implementation provides consistently 20% of the theoretical peak performance on AMD, Intel and NVIDIA hardware, being on par with the respective native implementations. Moreover, performance measurements of a real
+world application translated to Alpaka unanimously
+demonstrated that Alpaka can be used to write performance portable code.
+Performance portability, maintainability, sustainability and testability were reached through the usage of C++ metaprogramming techniques abstracting the variations in the underlying architectures.
+Alpaka code is sustainable, optimizable and easily extendable to support even more architectures
+through the use of C++ template specialization.
+It is data structure agnostic and provides a simple
+pointer based memory model that requires explicit
+deep copies between memory levels.
+Future work will focus on including more Alpaka
+back-ends, e.g. for OpenACC and OpenMP 4.x target offloading and studying performance portability
+for additional architectures (e.g Intel Xeon Phi and
+OpenPower) and applications.
+Alpaka is an open-source project and available in
+our GitHub repository15 .
+
+Hardware Peak Performance
+Application Speedup
+
+[1] Nathan Bell and Jared Hoberock.
+Thrust:
+Productivity-oriented library for cuda. Astrophysics Source Code Library, 1:12014, 2012.
+
+
+Figure 10: HASEonGPU was ported to Alpaka
+within three weeks by one person. The application
+shows almost perfect performance portability on all
+evaluated platforms.

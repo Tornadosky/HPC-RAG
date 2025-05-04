@@ -1,0 +1,222 @@
+Portability Efficiency Approach for Calculating Performance Portability
+Ami Marowka
+Parallel Research Lab
+8 Rosh Pina, Petach Tikva, Israel. 49729
+amimar2@yahoo.com
+23 Nov 2024
+
+Abstract
+The emergence of heterogeneity in high-performance computing, which harnesses under one integrated system several platforms of
+different architectures, also led to the development of innovative cross-platform programming models. Along with the expectation
+that these models will yield computationally intensive performance, there is demand for them to provide a reasonable degree of
+performance portability. Therefore, new tools and metrics are being developed to measure and calculate the level of performance
+portability of applications and programming models.
+The ultimate measure of performance portability is performance efficiency. Performance efficiency refers to the achieved
+performance as a fraction of some peak theoretical or practical baseline performance. Application efficiency approaches are the
+most popular and attractive performance efficiency measures among researchers because they are simple to measure and calculate.
+Unfortunately, the way they are used yields results that do not make sense, while violating one of the basic criteria that defines and
+characterizes the performance portability metrics.
+In this paper, we demonstrate how researchers currently use application efficiency to calculate the performance portability of
+applications and explain why this method deviates from its original definition. Then, we show why the obtained results do not make
+sense and propose practical solutions that satisfy the definition and criteria of performance portability metrics. Finally, we present
+a new performance efficiency approach called portability efficiency, which is immune to the shortcomings of application efficiency
+and substantially improves the aspect of portability when calculating performance portability.
+Keywords: Performance portability, Application Efficiency, Portability Efficiency, Heterogeneous programming, High
+performance computing, P̄P̄ metric
+
+1. Introduction
+The increased use of contemporary heterogeneous systems
+continues to challenge the designers of modern cross-platform
+programming models. The main difficulty designers face is to
+achieve the three pillars of high-performance computing: performance, portability, and productivity which are in tension with
+each other [1, 2, 3].
+To assess an application’s performance portability degree,
+it must be measured and calculated empirically on a sufficient
+number of different platforms. Conducting experiments on ten
+platforms is certainly sufficient, while measurements carried
+out on three platforms will yield a very deficient assessment.
+There are several preliminary steps before we calculate the
+performance portability of an application. First, it is important that we clarify to ourselves what the definition of the term
+performance portability really means. After that, determining which metric is most appropriate for our needs is required.
+Then, we need to choose a set of platforms of interest, and finally we must to choose the performance efficiency for the primary measurements.
+Research engaged in finding new and better methods for
+examining and measuring performance portability is still ongoing. However, it seems that regarding the definition of the term
+Preprint submitted to Elsevier
+
+performance portability, there is broad consensus [4].
+Definition: performance portability
+A measurement of an application’s performance
+efficiency for a given problem that can be executed
+correctly on all platforms in a given set.
+The definition explicitly states that performance efficiency
+is the ultimate measure of performance portability. Therefore,
+several approaches were proposed to measure performance efficiency alongside several metrics to calculate performance portability [5], [6], [7]. The performance efficiency of a given application on a platform of interest is defined as follows:
+Definition: Performance Efficiency
+A measurement of an application’s achieved performance as a fraction of a baseline performance.
+When performance is usually measured by runtime or throughput, the baseline performance can be either the theoretical or
+practical peak performance, such as the theoretical peak throughput of a specific GPU or its roofline peak throughput [8].
+Currently, two metrics are used to calculate the performance
+portability of an application and two types of performance efficiencies, architectural efficiency and application efficiency, which
+November 26, 2024
+
+use different performance baselines to calculate performance
+efficiency [7]. Baseline performances are mainly divided into
+two categories: theoretical and practical. For example, the two
+common architectural efficiency baselines are the theoretical
+peak performance of the platform of interest and the practical
+roofline peak performance of the platform of interest. Application efficiency is a popular measure because it is simple and
+easy to use [10]-[25]. All that is required is to measure the
+achieved runtime of the application on the given platform, and
+then to calculate its fraction relative to the runtime of the fastest
+known implementation of the application on the same platform.
+The problem is that we can never be sure whether we have
+the fastest implementation at hand. And so it can happen that
+immediately after we have published our research, a faster implementation is found which makes the results of our findings
+obsolete.
+Furthermore, in all the recent studies of performance portability of applications that are based on application efficiency approach, researchers always chose as the baseline performance
+the performance of the implementation that showed the best
+performance from three or four implementations studied in their
+current research and not from those known in the literature
+[10]-[25]. If we add the observation that different studies use
+different compilers, compiler options, and input sizes-and that
+the source codes are not always available-it is clear that this situation leads to non-uniformity and incoherence of the results,
+and difficulties in reproducing them.
+In this paper we concentrate on how application efficiency
+has been used since it was first proposed [4]. We present in
+detail, with the help of demonstrations, how it has been used,
+which will clarify the deficiencies inherent in the current calculation method and their consequences. After that, we present
+a few solutions that do not violate the definition and criteria of
+performance portability metrics.
+Finally, we present a new performance efficiency approach
+called portability efficiency, which is immune to the shortcomings of application efficiency and better reflects the aspect of
+performance portability.
+In addressing these goals, we make the following contributions:
+
+their solutions, are also correct for every performance portability metric that has been proposed so far in the scientific literature.
+The rest of the paper is structured as follows. Section 2
+reviews the criteria of the P̄P̄ metric, its definition, and the definitions of the architectural and application efficiencies. Section
+3 presents related works. Section 4 demonstrates the current
+method of calculating performance portability using application
+efficiency and its shortcomings. Section 5 describes appropriate solutions for calculating performance portability using application efficiency. Section 6 presents an undesirable solution
+which was used in a recent study. Section 7 presents a new performance efficiency approach called portability efficiency, and
+Section 8 presents the conclusions.
+Now let us define these two approaches formally.
+
+• We demonstrate how application efficiency has been used
+and the deficiencies arising from this method of calculation.
+• We present flexible solutions that are not affected by the
+deficiencies found in the current calculation method.
+• We present a new performance efficiency approach called
+portability efficiency which is immune to the shortcomings of application efficiency.
+We use the P̄P̄ metric for calculating performance portability
+[6, 7] in our demonstrations, which is based on the arithmetic
+mean, simply because it is more mathematically and practically
+correct. However, all the problems of measuring and calculating application efficiency which are presented in this paper, and
+2
+
+In [11], Deakin et al. presented an extensive study of the
+performance portability of five mini-applications implemented
+using five parallel programming models across six CPUs, five
+GPUs, and one vector-based architecture. The calculation of
+performance portability in this study was carried out using the
+application efficiency approach, with the best performance efficiency of a non-portable programming model (CUDA or OpenCL)
+functioning as a performance efficiency baseline. The authors’
+intention to conduct extensive research was largely unrealized
+because of problems such as immaturity of the tested programming models or imperfection of compilers and runtime systems.
+Particularly noticeable was the omission of many implementations in CUDA and OpenCL, whose performance could have
+provided baseline performance efficiencies.
+In such cases, the authors chose the performance of the
+high-level abstraction model that exhibited the best performance,
+such as OpenMP or Kokkos, as the baseline performance, which
+necessarily produced biased results. In cases where an application has only a single implementation, then there is no other
+choice but to determine that PP = 100%, or to determine that
+the baseline performance will be the best performance of the
+application among the tested architectures H, rather than the
+best-known implementation. Five tables (Figures 1, 3, 5, 7 and
+9) in [11] show the performance efficiency scores of each of
+the five applications in the study. It is apparent that on average, 25% of the cells in each table are empty, which means that
+25% of the implementations are missing. Therefore, it was inevitable that the results indicated considerable distortion and an
+inability to estimate properly the performance portability of the
+applications being tested.
+In [22], Pennycook et al. using a molecular dynamics benchmark called miniMD from the Mantevo suite to develop implementations of OpenMP 4.5 for CPU (Intel Xeon Gold 6148)
+and GPU (NVIDIA P100) and to calculate their application efficiencies and their performance portability, PP. For the CPU,
+the baseline performance used was the performance of an implementation of miniMD, called mxhMD, which was developed
+by the authors in a previous work. For the GPU, the baseline
+performance used was the performance of the Kokkos implementation of miniMD because no CUDA version of miniMD
+
+3. Related Works
+In this section we briefly describe a sample of studies that
+used application efficiency.
+In [10], Daniel and Panetta proposed a metric called Performance Portability Divergence (PD) to quantify the performance
+portability of an application across multiple machine architectures. The authors showed that the metric developed by Pennycook et al. [4], PP, is sensitive to problem size and therefore
+proposed a new metric to address this deficiency. The definition
+of the PD metric is based on the definition of code divergence
+D(A), which is the average of the pairwise distances between
+applications in the set of codes A as proposed by Harrell et
+al. [9]. Mathematically speaking, PD is the complement of PP
+when the performance efficiency is replaced by the average of
+the differences of the complement of performance efficiency for
+different input sizes.
+The authors demonstrated the use of their metric by experiments on two CPUs (Xeon E5-2630 v4 and Xeon E5-2699 v4)
+and two GPUs (NVIDIA Tesla K80 and NVIDIA Tesla P100).
+They used eight scientific codes implemented using the Kokkos
+and OpenACC parallel programming models to calculate the
+performance portability of these models across the CPUs and
+GPUs used in their experiments. The performance portability
+results obtained using the PD metric were analyzed and compared with the performance portability obtained by the PP metric. However, the calculations of these two performance portability metrics are based on the principles of application efficiency approach thus suffer from the same problems described
+in Section 4.
+3
+
+8. Conclusions
+
+method of the application efficiency approach which caused the
+performance portability scores to be updated as the examples in
+Section 4 demonstrate.
+The reason for this is that the measurement and calculation
+of the portability efficiency of a given application does not depend on the performance of another application but only on its
+own performance for different application settings on the set of
+platforms of interest.
+Table 5 also provides interesting diagnoses of performance
+portability from the perspective of the different architectures.
+For example, it can be seen, in Table 5 (left), that it is advisable
+to transfer the application from A100 to P100 (75%) rather than
+to MI250 (60%) because a better portability efficiency score is
+achieved. Another insight that emerges from the data of Table
+5 (left) is that, on average, A100 (84%) contributes more to the
+performance portability of CloverTree rather than P100 (75%)
+or MI250 (65%). Such information is especially important in
+critical heterogeneous systems, which are required to work continuously without interruption and to react in real time in cases
+where is necessary to perform an ad hoc migration of an application from one platform to another as a result of a failure or
+some other reason.
+Next, we present the results of two real applications. Table 6
+shows the portability efficiency and the performance portability
+scores of the OpenACC Jacobi application (left) and the OpenACC CFD application (right). First, it can be observed that
+the Jacobi application achieves a performance portability score
+(85.33%) that is two times better than achieved with the CFD
+application (46.33%) on the tested platforms (NVIDIA GTX
+680, AMD Radeon HD 7970, and Intel Xeon Phi). In the case
+of the Jacobi application, it can be seen that it is advisable to
+transfer the application from NVIDIA to AMD (93%) or from
+AMD to NVIDIA (95%), in order to preserve maximum performance portability. Moreover, these platforms contribute more
+to the total performance portability of Jacobi while demonstrating performance portability scores of 93% and 88% compared
+to Intel’s 75%. Similarly, in the case of the CFD application, the
+transition from the NVIDIA to AMD platforms, and in the opposite direction, is the most advisable. On the other hand, these
+platforms do not show a particularly noticeable contribution to
+the total performance portability of the CFD application.
+
+Application efficiency is an attractive approach to calculating the performance portability of an application because it is
+simple and easy to use. In this paper we demonstrated that the
+method of using this approach of performance efficiency yields
+calculations that do not align with the expectations inherent in
+its formal definition, and it violates the criteria of current performance portability metrics.
+Fortunately, there are solutions that make the use of application efficiency possible without side effects and which satisfy
+the formal definition without violating the performance portability criteria. We proposed three practical solutions, two of
+which are local solutions. The third solution is a global solution with many additional advantages.
+Finally, we proposed a new performance efficiency approach
+called portability efficiency. This approach is immune to the
+application efficiency problem, better expresses the aspect of
+portability, and it allows the user to explore different aspects
+of the impact of the different architectures on the performance
+portability of the application.
+We hope that the solutions we proposed will help the HPC
+community research to enhance studies in the field of performance portability.

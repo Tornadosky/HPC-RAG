@@ -1,0 +1,170 @@
+Introduction
+
+Modern High-Performance Computing (HPC) relies on a wide range of hardware, including CPUs, GPUs, and accelerators. While the Message Passing Interface (MPI) remains the standard for distributed-memory computing, developers must choose from an increasing number of node-level programming models, such as OpenMP, CUDA, HIP, OpenACC, oneAPI (SYCL), Kokkos, ALPAKA and RAJA. These frameworks vary in their ability to deliver portability, performance, and ease of use, making it essential to carefully evaluate their features.
+
+This poster compares these programming models based on key factors such as functional portability (the ability to run code across different architectures with a focus on TOP500 List), performance portability (maintaining efficiency across platforms), ecosystem maturity (tooling, libraries, and community support), and use cases. Drawing from published studies, benchmarks, and real-world applications, we classify each framework’s strengths, limitations, and trade-offs. This analysis aims to provide scientific code developers technical criteria and references to guide the selection of the best-suited framework.
+
+
+Method
+
+This evaluation systematically analyzes nine prominent parallel programming frameworks in HPC: OpenMP, OpenACC, CUDA, RAJA, Kokkos, ALPAKA, HIP, SYCL, and OpenCL. The analysis is based on literature and published results. This evaluation extends work [22] and considers the following criteria:
+
+- Primary Model — Frameworks are classified by their parallelization approach (e.g., shared memory, host-device or abstraction-based).
+
+- Target Hardware — Compatibility with CPUs, GPUs, FPGAs and hybrid systems.
+
+- Functional Portability — The ability to execute code across vendor platforms with minimal modification.
+
+- Performance Portability — The capability to maintain efficient performance across diverse hardware with varying levels of tuning.
+
+- Ecosystem Maturity — Tool availability, community activity and quality of documentation.
+
+- Use Cases — Applicability to specific HPC domains such as scientific simulations and AI/ML.
+
+Evaluation Approach
+
+Functional Portability: Measures how easily code runs across platforms.
+
+- High (green): Supports 3+ vendors with minimal code changes.
+
+- Medium (yellow): Supports 2 vendors, moderate adaptations required.
+
+- Low (red): Vendor-specific, significant rewrites needed.
+
+Performance Portability: Assesses how consistently frameworks achieve high performance.
+
+- High (green): Strong performance across CPUs and GPUs with little tuning.
+
+- Medium (yellow): Good performance on one platform, acceptable on others with moderate tuning.
+
+- Low (red): Optimized for one platform only, requiring extensive reimplementation.
+
+Ecosystem Maturity: Evaluates tools, community support, and documentation.
+
+- High (green): Comprehensive tools, active community, high-quality documentation.
+
+- Medium (yellow): Adequate tools, moderate community, sufficient documentation.
+
+- Low (red): Limited tools, niche adoption, outdated or minimal documentation.
+
+
+Conclusion
+
+This work reveals the following key observations regarding GPU-focused programming models and complementary CPU-based paradigms:
+
+Hardware-Specific Approaches (for example, CUDA for NVIDIA, HIP for AMD, and oneAPI for Intel) typically naturally achieve the best performance on their native architectures but may increase maintenance complexity when porting to alternative hardware.
+
+Directive-Based Methods (for example, OpenMP and OpenACC) offer convenient multi-vendor support, but performance may lag behind platform-native solutions.
+
+Abstraction Layers (for example, Kokkos and RAJA) provide single-source development for multiple platforms, helping manage code complexity. Nonetheless, consistent performance across different architectures depends on the maturity of underlying compilers and runtimes.
+
+Selecting the best-suited framework involves balancing immediate performance needs against longer-term sustainability. Although CUDA remains dominant in many NVIDIA-based environments, advanced solutions from AMD, Intel, and high-level abstractions like Kokkos continue to expand the possibilities for portable HPC development. Future studies could further explore the role of emerging frameworks in large-scale applications and evaluate their performance across a wider range of accelerators. This poster supports HPC researchers and developers in navigating this complex landscape by classifying various frameworks based on published results and comparisons.
+
+Confidence Indicators (from Table):
+
+A question mark indicates uncertainty due to limited data or conflicting studies.
+
+An hourglass symbol indicates that the information is older than 10 years and may be outdated.
+
+Framework and Vendor/Language Support (Plain Explanation):
+
+CUDA supports C++ and Fortran. It has full support from NVIDIA, indirect but comprehensive support from AMD, and partial vendor support from Intel that is not yet fully comprehensive.
+
+HIP supports C++ and Fortran. It has partial vendor support from NVIDIA, full support from AMD, and partial support from Intel.
+
+SYCL supports C++ and Fortran. It has comprehensive support on NVIDIA and Intel (though not always directly from the vendor), and partial support from AMD.
+
+OpenACC supports C++ and Fortran. It has full vendor support from NVIDIA, comprehensive (but not vendor-direct) support from AMD, and limited, indirect support from Intel.
+
+OpenMP supports C++ and Fortran. It has comprehensive support from NVIDIA and full vendor support from both AMD and Intel.
+
+Kokkos supports C++ and Fortran. It has comprehensive support from NVIDIA, indirect but comprehensive support from AMD, and full vendor support from Intel.
+
+ALPAKA supports C++ and Fortran. It has comprehensive support (though not always directly from vendors) from NVIDIA, AMD, and Intel.
+
+OpenCL supports C++ (and sometimes also C) and Fortran. It has full vendor support across all three: NVIDIA, AMD, and Intel.
+
+RAJA supports C++ and Fortran. It has comprehensive but not vendor-direct support from NVIDIA, AMD, and Intel.
+
+Results & Discussion
+
+OpenCL
+
+Primary Model: Cross-platform, kernel-based, host-device (with OpenCL C use)
+Target Hardware: CPU, GPU, FPGA, DSP
+Functional Portability: Was created as a cross-vendor framework. The information is over 10 years old.
+Performance Portability: Varies significantly across platforms, and even in convenient single-node cases, it is 1.3 times slower than CUDA.
+Ecosystem Maturity: Never gained much traction in the HPC-GPU space, mostly due to limited support from NVIDIA.
+Use Cases: Cross-vendor HPC, embedded systems, AI/ML, and scientific computing.
+
+SYCL
+
+Primary Model: Cross-platform, single-source C++
+Target Hardware: CPU, GPU
+Functional Portability: Implementations are available from an increasing number of vendors. It adds support for various acceleration API backends beyond OpenCL, such as Intel oneAPI, AdaptiveCpp, triSYCL, neoSYCL, and SimSYCL.
+Performance Portability: Performs well on NVIDIA and Intel GPUs but has limited performance on CPUs.
+Ecosystem Maturity: Growing tooling and libraries through Intel oneAPI. Maturity is still developing compared to CUDA. The confidence in this data is uncertain.
+Use Cases: HPC, scientific computing, AI/ML, and data-parallel tasks.
+
+RAJA
+
+Primary Model: Abstraction layer, loop-level parallelism (multi-backend)
+Target Hardware: CPU, GPU
+Functional Portability: Vendor interactions exist to support new hardware from IBM, NVIDIA, AMD, Intel, and Cray.
+Performance Portability: Performs well on NVIDIA GPUs but is limited on AMD GPUs.
+Ecosystem Maturity: Well-supported within the DOE (Department of Energy) but less comprehensive than Kokkos. The confidence in this data is uncertain.
+Use Cases: Scientific simulations, multi-backend HPC and loop management, and performance-portable HPC applications at LLNL.
+
+Kokkos
+
+Primary Model: Abstraction layer, parallel execution and memory management (multi-backend)
+Target Hardware: CPU, GPU (NVIDIA, AMD, Intel)
+Functional Portability: Provides backend switching between OpenMP, CUDA, and HIP, enabling portability across vendors. The information is older than 10 years.
+Performance Portability: Achieves close-to-native performance with tuning.
+Ecosystem Maturity: Strong support from the DOE and integration with major HPC libraries like Trilinos.
+Use Cases: HPC simulations, computational science, fine-grained parallelism, and performance-portable C++ applications.
+
+ALPAKA
+
+Primary Model: Abstraction layer, fine-grained parallelism (multi-backend)
+Target Hardware: CPU, GPU (NVIDIA, AMD, Intel), FPGA
+Functional Portability: Multi-backend support with backend switching between frameworks such as CUDA, OpenMP, and HIP.
+Performance Portability: Achieves close-to-native performance but requires tuning. It is evaluated as performance-portable across HPC architectures.
+Ecosystem Maturity: Smaller ecosystem compared to Kokkos. Tools and libraries are still maturing but are actively used in research.
+Use Cases: HPC simulations, cross-platform performance-portable applications, and fine-grained parallelism tasks.
+
+OpenACC
+
+Primary Model: Directive-based, host-device (focused on GPU offloading)
+Target Hardware: NVIDIA and AMD GPUs
+Functional Portability: Supports multi-vendor systems, but implementation favors NVIDIA GPUs due to more mature compiler and runtime support. Confidence in this information is uncertain.
+Performance Portability: Performance depends heavily on compiler quality and vendor support. The data is over 10 years old and may be outdated.
+Ecosystem Maturity: Tools and libraries are limited, mostly focused on legacy projects. Confidence in this information is uncertain.
+Use Cases: Climate modeling, GPU-accelerated legacy applications.
+
+OpenMP
+
+Primary Model: Directive-based, shared memory (with GPU offloading support)
+Target Hardware: CPU, GPU
+Functional Portability: Vendor-neutral with broad compatibility across architectures.
+Performance Portability: Requires tuning for GPU usage.
+Ecosystem Maturity: Robust tools, broad adoption, and strong support from vendors and community.
+Use Cases: Shared-memory HPC, engineering simulations, and hybrid AI/ML.
+
+CUDA
+
+Primary Model: Hardware-specific, kernel-based, host-device
+Target Hardware: NVIDIA GPUs
+Functional Portability: Exclusively supported on NVIDIA hardware.
+Performance Portability: No portability across vendors, but achieves high performance across various NVIDIA GPU models and generations.
+Ecosystem Maturity: Highly mature ecosystem with extensive libraries (such as cuBLAS and cuDNN), industry-standard development tools (e.g., Nsight), and strong vendor support.
+Use Cases: GPU-accelerated AI/ML, scientific simulations, and rendering.
+
+HIP
+
+Primary Model: Hardware-specific, kernel-based, host-device (CUDA-like)
+Target Hardware: AMD GPUs
+Functional Portability: Portable for AMD hardware and convertible CUDA applications using HIPIFY.
+Performance Portability: Optimized for AMD; tuning is required to achieve good performance on other vendors’ hardware.
+Ecosystem Maturity: AMD-focused tools and libraries are available but still in the process of maturing.
+Use Cases: HPC and engineering simulations targeted for AMD, including AI/ML applications.

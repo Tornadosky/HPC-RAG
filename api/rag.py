@@ -102,33 +102,57 @@ class RAGSystem:
         return StructuredOutputParser.from_response_schemas(response_schemas)
     
     def index_pdfs(self, pdf_directory: str):
-        """Index all PDFs in the specified directory and load them into the vector store"""
+        """Index all PDFs and TXT files in the specified directory and load them into the vector store"""
         pdf_path = Path(pdf_directory)
         if not pdf_path.exists():
             print(f"PDF directory {pdf_directory} does not exist.")
             return False
         
+        all_documents = []
+        
         # Load PDFs from directory
-        loader = DirectoryLoader(
+        pdf_loader = DirectoryLoader(
             pdf_directory,
             glob="**/*.pdf",
             loader_cls=PyPDFLoader
         )
         
-        print(f"Loading documents from {pdf_directory}...")
-        documents = loader.load()
-        if not documents:
-            print("No documents found.")
+        print(f"Loading PDF documents from {pdf_directory}...")
+        pdf_documents = pdf_loader.load()
+        if pdf_documents:
+            print(f"Loaded {len(pdf_documents)} PDF documents.")
+            all_documents.extend(pdf_documents)
+        else:
+            print("No PDF documents found.")
+        
+        # Load TXT files from directory
+        from langchain.document_loaders import TextLoader
+        txt_loader = DirectoryLoader(
+            pdf_directory,
+            glob="**/*.txt",
+            loader_cls=TextLoader
+        )
+        
+        print(f"Loading TXT documents from {pdf_directory}...")
+        txt_documents = txt_loader.load()
+        if txt_documents:
+            print(f"Loaded {len(txt_documents)} TXT documents.")
+            all_documents.extend(txt_documents)
+        else:
+            print("No TXT documents found.")
+        
+        if not all_documents:
+            print("No documents found in total.")
             return False
         
-        print(f"Loaded {len(documents)} documents.")
+        print(f"Loaded a total of {len(all_documents)} documents.")
         
         # Split documents into chunks
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=100
         )
-        chunks = text_splitter.split_documents(documents)
+        chunks = text_splitter.split_documents(all_documents)
         
         print(f"Split into {len(chunks)} chunks.")
         
