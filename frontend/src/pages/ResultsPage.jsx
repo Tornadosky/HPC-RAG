@@ -10,7 +10,8 @@ import {
   AlertIcon,
   AlertTitle,
   Spinner,
-  Center
+  Center,
+  Divider
 } from '@chakra-ui/react';
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -18,10 +19,11 @@ import { RepeatIcon } from '@chakra-ui/icons';
 import { useSurvey } from '../context/SurveyContext';
 import TopFrameworkCard from '../components/results/TopFrameworkCard';
 import FrameworkBarChart from '../components/results/FrameworkBarChart';
+import ChatWidget from '../components/chat/ChatWidget';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
-  const { results, resetSurvey } = useSurvey();
+  const { results, resetSurvey, surveyData } = useSurvey();
   const bgGradient = useColorModeValue(
     'linear(to-b, brand.50, gray.50)',
     'linear(to-b, gray.900, gray.800)'
@@ -88,6 +90,22 @@ export default function ResultsPage() {
             
             <FrameworkBarChart ranking={results.ranking} />
           </Box>
+          
+          {/* Chat Widget Section */}
+          <Box mt={8}>
+            <Heading as="h3" size="lg" mb={6}>
+              Ask Questions About Frameworks
+            </Heading>
+            <Text mb={4}>
+              Use our RAG-powered assistant to ask detailed questions about these frameworks and get answers based on research papers.
+            </Text>
+            <ChatWidget 
+              userProfile={surveyData} 
+              frameworkRanking={results.ranking} 
+            />
+          </Box>
+          
+          <Divider my={4} />
           
           {/* Start Over Button */}
           <Box textAlign="center" my={8}>

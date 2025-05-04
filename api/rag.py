@@ -12,6 +12,7 @@ from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, H
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.chat_models import ChatOllama
+from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 
 # Environment variables
 from dotenv import load_dotenv
@@ -82,6 +83,23 @@ class RAGSystem:
                 temperature=0.1,
                 streaming=True
             )
+            
+    def create_output_parser(self):
+        """Create a structured output parser for formatted responses"""
+        response_schemas = [
+            ResponseSchema(
+                name="answer",
+                description="The answer to the user's question based on the retrieved documents, user profile and ranking.",
+                type="string"
+            ),
+            ResponseSchema(
+                name="sources",
+                description="List of source documents cited in the answer.",
+                type="array"
+            )
+        ]
+        
+        return StructuredOutputParser.from_response_schemas(response_schemas)
     
     def index_pdfs(self, pdf_directory: str):
         """Index all PDFs in the specified directory and load them into the vector store"""
@@ -132,32 +150,52 @@ class RAGSystem:
         """Format the documents for the prompt context"""
         return "\n\n".join(f"Document from {doc.metadata['source']}, Page {doc.metadata.get('page', 'N/A')}:\n{doc.page_content}" for doc in docs)
     
-    def create_prompt_template(self):
-        """Create the chat prompt template"""
-        system_template = """You are an HPC-programming advisor.
-Context (cite as "(source.pdf)"):
+    def create_prompt_template(self, use_structured_output=False):
+        """Create the chat prompt template with optional structured output format instructions"""
+        base_system_template = """You are an HPC-programming advisor who helps users understand framework recommendations.
+
+Context from the literature (cite as "(source.pdf)"):
 {context}
 
-User profile:
+User's hardware profile and preferences:
 {profile}
 
-Model ranking (top-3):
+Framework ranking (from most to least suitable according to your profile):
 {ranking}
 
-Question: {question}
-Answer briefly (≤200 words) and cite sources."""
+When responding:
+1. Focus on providing educational and helpful information about HPC frameworks
+2. Present probability scores as percentages (e.g., write 6.7% instead of 0.067)
+3. Explain why frameworks are ranked as they are based on the user's profile and needs
+4. Use your general knowledge about HPC frameworks when appropriate 
+5. Keep framework names properly capitalized (e.g., OpenMP, ALPAKA, SYCL)
+6. Ensure proper spacing around punctuation marks and between words
+7. Keep answers concise (≤200 words) and cite sources when referencing specific information
 
-        human_template = "{question}"
-        
-        system_message_prompt = SystemMessagePromptTemplate.from_template(system_template)
-        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-        
-        chat_prompt = ChatPromptTemplate.from_messages([
-            system_message_prompt,
-            human_message_prompt
-        ])
-        
-        return chat_prompt
+Language guidelines:
+- Maintain proper capitalization for framework names (OpenMP, CUDA, ALPAKA, etc.)
+- Avoid inserting spaces into acronyms or framework names
+- Write percentages without spaces (6.7% not 6.7 %)
+- Use proper spacing after punctuation, but not before
+- Format apostrophes correctly (user's not user 's)
+"""
+
+        if use_structured_output:
+            # Add structured output format instructions
+            output_parser = self.create_output_parser()
+            format_instructions = output_parser.get_format_instructions()
+            system_template = f"{base_system_template}\n\n{format_instructions}\n\nQuestion: {{question}}"
+            return ChatPromptTemplate.from_messages([
+                SystemMessagePromptTemplate.from_template(system_template),
+                HumanMessagePromptTemplate.from_template("{question}")
+            ]), output_parser
+        else:
+            # Standard text output
+            system_template = f"{base_system_template}\n\nQuestion: {{question}}"
+            return ChatPromptTemplate.from_messages([
+                SystemMessagePromptTemplate.from_template(system_template),
+                HumanMessagePromptTemplate.from_template("{question}")
+            ]), None
     
     def format_ranking(self, ranking_list):
         """Format the ranking list for the prompt"""
@@ -165,10 +203,11 @@ Answer briefly (≤200 words) and cite sources."""
             return "No model ranking available."
         
         formatted = []
-        for rank in ranking_list[:3]:  # Take only top 3
-            framework = rank.get("framework", "Unknown")
-            prob = rank.get("prob", 0.0)
-            formatted.append(f"{framework}: {prob:.4f}")
+        for rank, item in enumerate(ranking_list[:3], 1):  # Take only top 3
+            framework = item.get("framework", "Unknown")
+            prob = item.get("prob", 0.0)
+            percentage = prob * 100
+            formatted.append(f"{rank}. {framework}: {percentage:.1f}%")
         
         return "\n".join(formatted)
     
@@ -187,8 +226,9 @@ Answer briefly (≤200 words) and cite sources."""
     
     def query(self, question, profile, ranking, stream=False):
         """Query the RAG system with a user question"""
-        # Create the chain
-        prompt = self.create_prompt_template()
+        # Create the chain with structured output when not streaming
+        use_structured_output = not stream
+        prompt, output_parser = self.create_prompt_template(use_structured_output)
         
         # Convert profile to JSON string if it's not already a string
         if isinstance(profile, dict):
@@ -199,26 +239,57 @@ Answer briefly (≤200 words) and cite sources."""
         # Format the ranking
         ranking_str = self.format_ranking(ranking)
         
-        # Create the generation chain
-        rag_chain = (
-            {"context": self.retriever | self._format_docs, 
-             "question": RunnablePassthrough(), 
-             "profile": lambda _: profile_str,
-             "ranking": lambda _: ranking_str}
-            | prompt
-            | self.llm
-            | StrOutputParser()
-        )
+        # Input variables
+        input_variables = {
+            "context": self.retriever | self._format_docs, 
+            "question": RunnablePassthrough(), 
+            "profile": lambda _: profile_str,
+            "ranking": lambda _: ranking_str
+        }
         
         if stream:
+            # For streaming, we use the standard chain without structured output
+            rag_chain = (
+                input_variables 
+                | prompt
+                | self.llm
+                | StrOutputParser()
+            )
+            
             # Return a generator for streaming
             response_stream = rag_chain.stream(question)
             return response_stream
         else:
-            # Return the complete response
-            answer = rag_chain.invoke(question)
-            citations = self.extract_citations(answer)
-            return {"answer": answer, "citations": citations}
+            # For non-streaming, use structured output
+            rag_chain = (
+                input_variables
+                | prompt
+                | self.llm
+                | StrOutputParser()
+            )
+            
+            # Get the raw response
+            raw_response = rag_chain.invoke(question)
+            
+            try:
+                # Parse the structured output
+                if output_parser:
+                    parsed_output = output_parser.parse(raw_response)
+                    # If the model returned structured output correctly
+                    if isinstance(parsed_output, dict) and "answer" in parsed_output:
+                        return {
+                            "answer": parsed_output["answer"],
+                            "citations": parsed_output.get("sources", [])
+                        }
+                
+                # Fallback if structured parsing fails
+                citations = self.extract_citations(raw_response)
+                return {"answer": raw_response, "citations": citations}
+            except Exception as e:
+                print(f"Error parsing structured output: {str(e)}")
+                # Fallback to regular extraction
+                citations = self.extract_citations(raw_response)
+                return {"answer": raw_response, "citations": citations}
 
 # Singleton instance
 rag_system = None

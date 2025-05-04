@@ -9,6 +9,7 @@ import joblib
 import os
 import pathlib
 from sse_starlette.sse import EventSourceResponse
+import asyncio
 
 # Import RAG functionality
 from rag import get_rag_system
@@ -294,14 +295,33 @@ async def chat(request: ChatRequest, stream: bool = Query(False)):
                         stream=True
                     )
                     
+                    # Stream each token as a separate SSE event
                     for token in response_stream:
                         if token:
-                            yield {"data": token}
+                            # Format properly for SSE - data field only
+                            yield {"data": token.strip()}
+                            # Small delay to ensure frontend can process tokens
+                            await asyncio.sleep(0.01)
+                    
+                    # Send a completion event to signal the end of the stream
+                    yield {"event": "done", "data": ""}
+                    
                 except Exception as e:
                     print(f"Error in stream: {str(e)}")
                     yield {"data": f"Error: {str(e)}"}
+                    yield {"event": "done", "data": ""}
             
-            return EventSourceResponse(event_generator())
+            # Ensure proper SSE headers and CORS compatibility
+            return EventSourceResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",  # Important for Nginx
+                    "Access-Control-Allow-Origin": "*",
+                }
+            )
         
         # Regular non-streaming response
         response = rag_system.query(
