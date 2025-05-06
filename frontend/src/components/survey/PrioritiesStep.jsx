@@ -55,7 +55,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
   };
   
   const handleLockinToleranceChange = (value) => {
-    updateSurveyData({ lockin_tolerance: value / 100 });
+    updateSurveyData({ lockin_tolerance: value / 5 });
   };
   
   // Handle skill level
@@ -104,7 +104,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
           <Slider
             id="perf-slider"
             defaultValue={surveyData.perf_weight * 5}
-            min={1}
+            min={0}
             max={5}
             step={1}
             onChange={handlePerfWeightChange}
@@ -113,11 +113,23 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             mt={6}
             mb={10}
           >
-            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
-              Low
+            <SliderMark value={0} mt={2} ml={-2.5} fontSize="sm">
+              0
             </SliderMark>
-            <SliderMark value={5} mt={2} ml={-10} fontSize="sm">
-              Critical
+            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
+              1
+            </SliderMark>
+            <SliderMark value={2} mt={2} ml={-2.5} fontSize="sm">
+              2
+            </SliderMark>
+            <SliderMark value={3} mt={2} ml={-2.5} fontSize="sm">
+              3
+            </SliderMark>
+            <SliderMark value={4} mt={2} ml={-2.5} fontSize="sm">
+              4
+            </SliderMark>
+            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+              5
             </SliderMark>
             <SliderTrack>
               <SliderFilledTrack />
@@ -150,7 +162,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
           <Slider
             id="port-slider"
             defaultValue={surveyData.port_weight * 5}
-            min={1}
+            min={0}
             max={5}
             step={1}
             onChange={handlePortWeightChange}
@@ -159,11 +171,23 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             mt={6}
             mb={10}
           >
-            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
-              Low
+            <SliderMark value={0} mt={2} ml={-2.5} fontSize="sm">
+              0
             </SliderMark>
-            <SliderMark value={5} mt={2} ml={-10} fontSize="sm">
-              Critical
+            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
+              1
+            </SliderMark>
+            <SliderMark value={2} mt={2} ml={-2.5} fontSize="sm">
+              2
+            </SliderMark>
+            <SliderMark value={3} mt={2} ml={-2.5} fontSize="sm">
+              3
+            </SliderMark>
+            <SliderMark value={4} mt={2} ml={-2.5} fontSize="sm">
+              4
+            </SliderMark>
+            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+              5
             </SliderMark>
             <SliderTrack>
               <SliderFilledTrack />
@@ -196,7 +220,7 @@ export default function PrioritiesStep({ onNext, onPrev }) {
           <Slider
             id="eco-slider"
             defaultValue={surveyData.eco_weight * 5}
-            min={1}
+            min={0}
             max={5}
             step={1}
             onChange={handleEcoWeightChange}
@@ -205,11 +229,23 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             mt={6}
             mb={10}
           >
-            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
-              Low
+            <SliderMark value={0} mt={2} ml={-2.5} fontSize="sm">
+              0
             </SliderMark>
-            <SliderMark value={5} mt={2} ml={-10} fontSize="sm">
-              Critical
+            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
+              1
+            </SliderMark>
+            <SliderMark value={2} mt={2} ml={-2.5} fontSize="sm">
+              2
+            </SliderMark>
+            <SliderMark value={3} mt={2} ml={-2.5} fontSize="sm">
+              3
+            </SliderMark>
+            <SliderMark value={4} mt={2} ml={-2.5} fontSize="sm">
+              4
+            </SliderMark>
+            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+              5
             </SliderMark>
             <SliderTrack>
               <SliderFilledTrack />
@@ -238,10 +274,10 @@ export default function PrioritiesStep({ onNext, onPrev }) {
           
           <Slider
             id="lockin-slider"
-            defaultValue={surveyData.lockin_tolerance * 100}
+            defaultValue={surveyData.lockin_tolerance * 5}
             min={0}
-            max={100}
-            step={10}
+            max={5}
+            step={1}
             onChange={handleLockinToleranceChange}
             onMouseEnter={() => setLockinShowTooltip(true)}
             onMouseLeave={() => setLockinShowTooltip(false)}
@@ -249,10 +285,22 @@ export default function PrioritiesStep({ onNext, onPrev }) {
             mb={10}
           >
             <SliderMark value={0} mt={2} ml={-2.5} fontSize="sm">
-              Need freedom
+              0
             </SliderMark>
-            <SliderMark value={100} mt={2} ml={-24} fontSize="sm">
-              Single vendor fine
+            <SliderMark value={1} mt={2} ml={-2.5} fontSize="sm">
+              1
+            </SliderMark>
+            <SliderMark value={2} mt={2} ml={-2.5} fontSize="sm">
+              2
+            </SliderMark>
+            <SliderMark value={3} mt={2} ml={-2.5} fontSize="sm">
+              3
+            </SliderMark>
+            <SliderMark value={4} mt={2} ml={-2.5} fontSize="sm">
+              4
+            </SliderMark>
+            <SliderMark value={5} mt={2} ml={-2.5} fontSize="sm">
+              5
             </SliderMark>
             <SliderTrack>
               <SliderFilledTrack />

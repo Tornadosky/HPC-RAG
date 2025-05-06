@@ -156,24 +156,42 @@ def generate_explanation(input_data, top_framework, probabilities, classes):
     
     # Combine into explanation
     if hardware_used:
-        explanation_parts.append(f"Your hardware ({', '.join(hardware_used)})")
+        explanation_parts.append(f"your hardware ({', '.join(hardware_used)})")
     
     if preferences:
-        explanation_parts.append(f"emphasis on {', '.join(preferences)}")
+        explanation_parts.append(f"your preference for {', '.join(preferences)}")
     
     if prog_model:
-        explanation_parts.append(f"preference for {', '.join(prog_model)}")
+        explanation_parts.append(f"your preference for {', '.join(prog_model)}")
     
     if project_type:
-        explanation_parts.append(f"{project_type}")
+        explanation_parts.append(f"your {project_type}")
     
     if input_data["need_cross_vendor"] == 1:
-        explanation_parts.append("need for cross-vendor support")
+        explanation_parts.append("your need for cross-vendor support")
     
     if input_data["lockin_tolerance"] > 0.8:
-        explanation_parts.append("high vendor lock-in tolerance")
+        explanation_parts.append("your high tolerance for vendor lock-in")
     elif input_data["lockin_tolerance"] < 0.3:
-        explanation_parts.append("low vendor lock-in tolerance")
+        explanation_parts.append("your preference for vendor independence")
+    
+    # Check domain focus
+    domains = []
+    if input_data["domain_hpc"] == 1:
+        domains.append("HPC")
+    if input_data["domain_ai_ml"] == 1:
+        domains.append("AI/ML")
+    if input_data["domain_climate"] == 1:
+        domains.append("climate simulation")
+    if input_data["domain_embedded"] == 1:
+        domains.append("embedded systems")
+    if input_data["domain_graphics"] == 1:
+        domains.append("graphics")
+    if input_data["domain_data_analytics"] == 1:
+        domains.append("data analytics")
+        
+    if domains:
+        explanation_parts.append(f"your focus on {', '.join(domains)}")
     
     # Construct the explanation
     if explanation_parts:

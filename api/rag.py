@@ -194,14 +194,20 @@ When responding:
 4. Use your general knowledge about HPC frameworks when appropriate 
 5. Keep framework names properly capitalized (e.g., OpenMP, ALPAKA, SYCL)
 6. Ensure proper spacing around punctuation marks and between words
-7. Keep answers concise (≤200 words) and cite sources when referencing specific information
+7. Keep answers concise (≤200 words) and talk as if you are talking to user, (e.g. "Based on your profile, you should use OpenMP because...")
+8. Do NOT mention internal variable names (like need_cross_vendor, domain_hpc, etc.)
+9. For sources, use short descriptions like ("As referenced by some resources") instead of document names
+10. IMPORTANT: Do not add spaces within words (e.g., write "prioritizes" not "priorit izes")
 
 Language guidelines:
 - Maintain proper capitalization for framework names (OpenMP, CUDA, ALPAKA, etc.)
-- Avoid inserting spaces into acronyms or framework names
+- Avoid inserting spaces into words, acronyms or framework names
 - Write percentages without spaces (6.7% not 6.7 %)
 - Use proper spacing after punctuation, but not before
 - Format apostrophes correctly (user's not user 's)
+- Use plain language to explain technical concepts
+- Shorten long source filenames to 15 characters with "..." in citations
+- Keep words joined correctly (write "functionality" not "function ality")
 """
 
         if use_structured_output:

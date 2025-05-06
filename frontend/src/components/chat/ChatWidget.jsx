@@ -75,19 +75,53 @@ export default function ChatWidget({ userProfile, frameworkRanking }) {
     
     // Known framework names to fix
     const frameworkNames = {
+      'Kok kos': 'Kokkos',
+      'K ok kos': 'Kokkos',
       'AL PA KA': 'ALPAKA',
       'ALPA KA': 'ALPAKA',
       'AL PAKA': 'ALPAKA',
       'Open ACC': 'OpenACC',
       'Open MP': 'OpenMP',
       'Open CL': 'OpenCL',
-      'Std Par': 'StdPar',
-      'Kokkos': 'Kokkos',
-      'RAJA': 'RAJA',
-      'TBB': 'TBB',
       'SYCL': 'SYCL',
+      'Std Par': 'StdPar',
+      'RA JA': 'RAJA',
+      'T BB': 'TBB',
       'Hip PCC': 'HipPCC',
       'Hip PCL': 'HipPCL'
+    };
+    
+    // Words/terms to fix (including internal variable names to remove)
+    const termsToFix = {
+      'port ability': 'portability',
+      'perform ance': 'performance',
+      'ach itect ure': 'architecture',
+      'need _cross _vendor': 'cross-vendor support',
+      'domain _h pc': 'HPC domain focus',
+      'cross-v endor': 'cross-vendor',
+      'frame work': 'framework',
+      'ab straction': 'abstraction',
+      'well-su ited': 'well-suited',
+      'div erse': 'diverse',
+      'hier arch ies': 'hierarchies',
+      'algo rithm': 'algorithm',
+      'priorit izes': 'prioritizes',
+      'rank ing': 'ranking',
+      'recommend ation': 'recommendation',
+      'process ing': 'processing',
+      'program ming': 'programming',
+      'compat ibility': 'compatibility',
+      'specific ation': 'specification',
+      'model ing': 'modeling',
+      'util izes': 'utilizes',
+      'focus es': 'focuses',
+      'develop ment': 'development',
+      'express ivity': 'expressivity',
+      'special ized': 'specialized',
+      'optimiz ation': 'optimization',
+      'implement ation': 'implementation',
+      'character istics': 'characteristics',
+      'function ality': 'functionality'
     };
     
     let formattedText = text;
@@ -98,10 +132,47 @@ export default function ChatWidget({ userProfile, frameworkRanking }) {
       formattedText = formattedText.replace(regex, correct);
     });
     
+    // Fix terms and internal variable names
+    Object.entries(termsToFix).forEach(([incorrect, correct]) => {
+      const regex = new RegExp(`\\b${incorrect.replace(/\s+/g, '\\s+')}\\b`, 'gi');
+      formattedText = formattedText.replace(regex, correct);
+    });
+    
     // Fix acronyms
     Object.entries(acronyms).forEach(([incorrect, correct]) => {
       const regex = new RegExp(`\\b${incorrect.replace(/\s+/g, '\\s+')}\\b`, 'gi');
       formattedText = formattedText.replace(regex, correct);
+    });
+    
+    // Generic pattern to fix common split words with space between stem and suffix
+    // Handles cases like "priorit izes", "optimiz ation", etc. that aren't in the explicit list
+    const commonSuffixes = [
+      'izes', 'ize', 'ized', 'izing', 'ization', 'izing',
+      'ates', 'ate', 'ated', 'ating', 'ation', 'ations',
+      'ables', 'able', 'ability', 'abilities',
+      'ibles', 'ible', 'ibility', 'ibilities',
+      'ments', 'ment',
+      'nesses', 'ness',
+      'ions', 'ion',
+      'ives', 'ive',
+      'ances', 'ance',
+      'ences', 'ence',
+      'ities', 'ity',
+      'ers', 'er',
+      'ors', 'or',
+      'ings', 'ing',
+      'ants', 'ant',
+      'ents', 'ent',
+      'ists', 'ist',
+      'isms', 'ism',
+      'ous', 'ic', 'ited'
+    ];
+    
+    commonSuffixes.forEach(suffix => {
+      // Match words that are split by a space before the suffix
+      // e.g., "priorit izes", "optimiz ation"
+      const pattern = new RegExp(`(\\w{3,})\\s+(${suffix})\\b`, 'gi');
+      formattedText = formattedText.replace(pattern, '$1$2');
     });
     
     // Fix possessive apostrophes with spaces (user 's → user's)
@@ -153,6 +224,14 @@ export default function ChatWidget({ userProfile, frameworkRanking }) {
     formattedText = formattedText.replace(/\b0\.(\d{2})(\d?)\b/g, (match, p1, p2) => {
       const percentage = parseFloat(`0.${p1}${p2 || ''}`) * 100;
       return `${Math.round(percentage * 10) / 10}%`;
+    });
+    
+    // Format citation references - change from (filename.txt) to (file...txt)
+    formattedText = formattedText.replace(/\(([\w-]+)\.(\w+)\)/g, (match, filename, ext) => {
+      if (filename.length > 12) {
+        return `(${filename.substring(0, 12)}...${ext})`;
+      }
+      return `(${filename}.${ext})`;
     });
     
     // Double spaces to single spaces
