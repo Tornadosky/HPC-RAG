@@ -10,12 +10,80 @@ import os
 import pathlib
 from sse_starlette.sse import EventSourceResponse
 import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime
 
 # Import RAG functionality
 from rag import get_rag_system
 
-app = FastAPI(title="HPC Framework Recommender API", 
-             description="API for recommending HPC frameworks based on user preferences")
+# Import NVIDIA API dependencies
+from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_community.vectorstores import FAISS
+
+# NVIDIA API key for RAG
+NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+
+# Global variables for NVIDIA RAG
+nvidia_embedding_model = "nvidia/nv-embed-v1"
+nvidia_vector_store_path = "api/vector_store_faiss"
+nvidia_embeddings = None
+nvidia_vector_store = None
+nvidia_llm = None
+
+# Lifespan context manager for app startup/shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize NVIDIA RAG components if API key is provided
+    if NVIDIA_API_KEY:
+        await initialize_nvidia_rag()
+    
+    # App runs here
+    yield
+    
+    # Shutdown: cleanup resources
+    print("Shutting down API")
+
+# Function to initialize NVIDIA RAG components
+async def initialize_nvidia_rag():
+    global nvidia_embeddings, nvidia_vector_store, nvidia_llm
+    
+    try:
+        print(f"Initializing NVIDIA API embeddings model: {nvidia_embedding_model}")
+        nvidia_embeddings = NVIDIAEmbeddings(
+            model=nvidia_embedding_model,
+            api_key=NVIDIA_API_KEY
+        )
+        
+        # Check if vector store exists
+        if os.path.exists(nvidia_vector_store_path):
+            print(f"Loading vector store from {nvidia_vector_store_path}")
+            nvidia_vector_store = FAISS.load_local(
+                nvidia_vector_store_path, 
+                nvidia_embeddings,
+                allow_dangerous_deserialization=True
+            )
+            
+            # Initialize default LLM
+            nvidia_llm = ChatNVIDIA(
+                model="meta/llama3-8b-instruct",
+                api_key=NVIDIA_API_KEY
+            )
+            
+            print("NVIDIA RAG initialization complete")
+        else:
+            print(f"Warning: Vector store not found at {nvidia_vector_store_path}. NVIDIA RAG will not be available.")
+    except Exception as e:
+        print(f"Error initializing NVIDIA RAG: {str(e)}")
+
+app = FastAPI(
+    title="HPC Framework Recommender API", 
+    description="API for recommending HPC frameworks based on user preferences",
+    lifespan=lifespan
+)
 
 # Enable CORS for frontend
 app.add_middleware(
@@ -69,6 +137,16 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     citations: List[str]
+
+# New models for NVIDIA RAG endpoint
+class NvidiaRagRequest(BaseModel):
+    query: str
+    model: Optional[str] = "meta/llama3-8b-instruct"
+    framework_ranking: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
+    user_profile: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+class NvidiaRagResponse(BaseModel):
+    response: str
 
 # Find the model file (search in parent directory if not in current directory)
 def find_model_file():
@@ -358,6 +436,235 @@ async def chat(request: ChatRequest, stream: bool = Query(False)):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+
+@app.post("/nvidia-rag", response_model=NvidiaRagResponse)
+async def nvidia_rag_query(request: NvidiaRagRequest):
+    """Endpoint for NVIDIA API-powered RAG queries"""
+    global nvidia_vector_store, nvidia_llm
+    
+    if not NVIDIA_API_KEY:
+        raise HTTPException(status_code=501, detail="NVIDIA RAG not available: API key not set")
+    
+    if nvidia_vector_store is None:
+        raise HTTPException(status_code=501, detail="NVIDIA RAG not available: Vector store not initialized")
+    
+    # Use the requested model if different from current
+    if request.model != nvidia_llm.model:
+        try:
+            nvidia_llm = ChatNVIDIA(
+                model=request.model,
+                api_key=NVIDIA_API_KEY
+            )
+        except Exception as e:
+            print(f"Error switching model: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Error switching to model {request.model}: {str(e)}")
+    
+    try:
+        # Create retriever
+        retriever = nvidia_vector_store.as_retriever(search_kwargs={"k": 3})
+        
+        # Format framework ranking for prompt
+        framework_info = ""
+        if request.framework_ranking:
+            framework_info = "Model Predictions (frameworks ranked by suitability for your requirements):\n"
+            
+            # Only show top 5 frameworks
+            top_frameworks = request.framework_ranking[:5]
+            
+            for i, rank in enumerate(top_frameworks):
+                percentage = rank.get("percentage", 0)
+                if not percentage and "prob" in rank:
+                    # Convert probability to percentage if needed
+                    prob = rank["prob"]
+                    percentage = prob * 100 if prob <= 1 else prob
+                
+                framework = rank.get('framework', 'Unknown')
+                
+                # Add descriptive text based on ranking
+                description = ""
+                if i == 0:
+                    description = " (best match)"
+                elif i == 1:
+                    description = " (strong alternative)"
+                elif i == 2:
+                    description = " (viable option)"
+                
+                framework_info += f"- {framework}{description}: {percentage:.1f}%\n"
+        
+        # Format user profile for prompt
+        profile_info = ""
+        if request.user_profile:
+            profile_info = "User Hardware and Requirements:\n"
+            
+            # Hardware info
+            hw_info = []
+            if request.user_profile.get("hw_cpu", 0) == 1:
+                hw_info.append("CPU")
+            if request.user_profile.get("hw_nvidia", 0) == 1:
+                hw_info.append("NVIDIA GPU")
+            if request.user_profile.get("hw_amd", 0) == 1:
+                hw_info.append("AMD GPU")
+            if request.user_profile.get("hw_other", 0) == 1:
+                hw_info.append("Other accelerators")
+            
+            profile_info += f"- Hardware: {', '.join(hw_info) if hw_info else 'Not specified'}\n"
+            
+            # Cross-vendor support
+            if request.user_profile.get("need_cross_vendor", 0) == 1:
+                profile_info += "- Needs cross-vendor support\n"
+            
+            # Weights using descriptive terms
+            def weight_to_text(weight):
+                if weight < 0.3:
+                    return "Low importance"
+                elif weight < 0.7:
+                    return "Medium importance" 
+                else:
+                    return "High importance"
+            
+            # Weights
+            perf_weight = request.user_profile.get("perf_weight", 0.5)
+            port_weight = request.user_profile.get("port_weight", 0.5)
+            eco_weight = request.user_profile.get("eco_weight", 0.5)
+            
+            profile_info += f"- Performance: {weight_to_text(perf_weight)}\n"
+            profile_info += f"- Portability across devices: {weight_to_text(port_weight)}\n"
+            profile_info += f"- Ecosystem maturity: {weight_to_text(eco_weight)}\n"
+            
+            # Project type
+            project_type = ""
+            if request.user_profile.get("greenfield", 0) == 1:
+                project_type = "New project (starting from scratch)"
+            elif request.user_profile.get("gpu_extend", 0) == 1:
+                project_type = "Extending existing GPU code"
+            elif request.user_profile.get("cpu_port", 0) == 1:
+                project_type = "Porting from CPU code to GPU"
+            
+            if project_type:
+                profile_info += f"- Project type: {project_type}\n"
+            
+            # Domain with more description
+            domains = []
+            domain_mapping = {
+                "domain_ai_ml": "AI/ML",
+                "domain_hpc": "High Performance Computing",
+                "domain_climate": "Climate/Weather Simulation",
+                "domain_embedded": "Embedded Systems",
+                "domain_graphics": "Graphics/Visualization",
+                "domain_data_analytics": "Data Analytics",
+                "domain_other": "Other domain"
+            }
+            
+            for key, label in domain_mapping.items():
+                if request.user_profile.get(key, 0) == 1:
+                    domains.append(label)
+            
+            if domains:
+                profile_info += f"- Application domain: {', '.join(domains)}\n"
+            
+            # Additional preferences with clearer descriptions
+            if request.user_profile.get("pref_directives", 0) == 1:
+                profile_info += "- Preferred coding style: Directive-based (like OpenMP/OpenACC)\n"
+            if request.user_profile.get("pref_kernels", 0) == 1:
+                profile_info += "- Preferred coding style: Explicit kernel-based (like CUDA/HIP)\n"
+            
+            # Skill level as descriptive text
+            skill_level = request.user_profile.get("gpu_skill_level", 1)
+            skill_text = "No prior experience with GPU programming"
+            if skill_level == 1:
+                skill_text = "Basic understanding of GPU programming"
+            elif skill_level == 2:
+                skill_text = "Intermediate GPU programming skills"
+            elif skill_level == 3:
+                skill_text = "Expert-level GPU programming knowledge"
+            
+            profile_info += f"- Experience level: {skill_text}\n"
+            
+            # Vendor lock-in tolerance in clearer terms
+            lockin = request.user_profile.get("lockin_tolerance", 0.5)
+            if lockin < 0.3:
+                lockin_text = "Strong preference for vendor-independent solutions"
+            elif lockin < 0.7:
+                lockin_text = "Moderate concern about vendor lock-in"
+            else:
+                lockin_text = "Comfortable with vendor-specific solutions"
+            
+            profile_info += f"- Vendor lock-in preference: {lockin_text}\n"
+        
+        # Define RAG prompt with user context
+        template = """You are an AI assistant for answering questions about HPC (High Performance Computing) frameworks and programming models.
+        You provide accurate, helpful responses tailored to the user's specific hardware and requirements.
+        
+        FRAMEWORK RANKING:
+        {framework_info}
+        
+        USER REQUIREMENTS:
+        {profile_info}
+        
+        RESEARCH CONTEXT:
+        {context}
+        
+        QUESTION:
+        {question}
+        
+        Provide a focused, technical response that directly addresses the question. Use the information above to:
+        1. Explain WHY specific frameworks are suitable based on the user's hardware and requirements
+        2. Mention relevant technical features from the research context
+        3. Compare frameworks when appropriate for the question
+        4. Address trade-offs in performance, portability, and ecosystem
+        5. Use direct address (you/your) rather than third-person references
+        
+        Be concise and technical, avoiding repetition of ranking percentages. If you don't know something specific, say so."""
+        
+        prompt = ChatPromptTemplate.from_template(template)
+        
+        # Create RAG chain
+        rag_chain = (
+            {
+                "context": retriever, 
+                "question": RunnablePassthrough(),
+                "framework_info": lambda _: framework_info,
+                "profile_info": lambda _: profile_info
+            }
+            | prompt
+            | nvidia_llm
+            | StrOutputParser()
+        )
+        
+        # Print the full prompt that will be sent to the LLM
+        try:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"\n--- PROMPT SENT TO LLM [{timestamp}] ---")
+            print(f"Query: '{request.query}'")
+            print("-" * 40)
+            
+            # Get the actual documents that will be included in the context
+            retrieved_docs = retriever.invoke(request.query)
+            context_text = "\n\n".join([doc.page_content for doc in retrieved_docs])
+            
+            # Format the actual prompt that will be sent to the LLM
+            full_prompt = template.format(
+                framework_info=framework_info,
+                profile_info=profile_info,
+                context=context_text,
+                question=request.query
+            )
+            
+            # Print ONLY what the model actually receives
+            print(full_prompt)
+            print("--- END OF PROMPT ---\n")
+        except Exception as e:
+            print(f"Error printing full prompt: {str(e)}")
+        
+        # Process query
+        response = rag_chain.invoke(request.query)
+        
+        return NvidiaRagResponse(response=response)
+    except Exception as e:
+        print(f"Error in NVIDIA RAG query: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"NVIDIA RAG query error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  rag-backend:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    container_name: hpc-rag-backend
+    volumes:
+      - ./vector_store_faiss:/app/api/vector_store_faiss
+      - ./data/pdfs:/app/api/data/pdfs
+      - ..:/app  # Mount the entire project for access to main.py and model.joblib
+    environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: hpc-frontend
+    depends_on:
+      - rag-backend
+    volumes:
+      - ../frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "3000:80"  # Frontend typically runs on port 3000
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000  # Point to integrated backend
+    restart: unless-stopped 

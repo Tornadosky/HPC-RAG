@@ -19,6 +19,7 @@ import {
 import { keyframes } from '@emotion/react';
 import { ChevronRightIcon, ChatIcon, CloseIcon } from '@chakra-ui/icons';
 import { motion } from 'framer-motion';
+import api from '../../utils/api';
 
 const MotionBox = motion(Box);
 
@@ -252,11 +253,12 @@ export default function ChatWidget({ userProfile, frameworkRanking }) {
     setCurrentResponse('');
     
     try {
-      // Prepare the payload for the API
-      const payload = {
-        question: inputValue,
-        profile: userProfile,
-        ranking: frameworkRanking
+      // Prepare the payload for the RAG API with additional context
+      const ragPayload = {
+        query: inputValue,
+        model: "meta/llama3-8b-instruct",
+        framework_ranking: frameworkRanking || [], // Pass framework ranking data
+        user_profile: userProfile || {} // Pass user profile/survey data
       };
       
       // Add a placeholder for the streaming response
@@ -266,81 +268,41 @@ export default function ChatWidget({ userProfile, frameworkRanking }) {
         isStreaming: true 
       }]);
       
-      // Stream the response using fetch with ReadableStream
-      const streamResponse = await fetch('/api/chat?stream=true', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+      // Make a request to our integrated RAG endpoint in main.py
+      const response = await api.post('/api/nvidia-rag', ragPayload);
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Get the response
+      const data = response.data;
+      const responseText = data.response;
+      
+      // Format the text for display
+      const formattedText = formatText(responseText);
+      
+      // Update the message with the final text
+      setMessages(prevMessages => {
+        const updated = [...prevMessages];
+        const assistantIndex = updated.findIndex(msg => msg.isStreaming);
+        if (assistantIndex >= 0) {
+          updated[assistantIndex] = { 
+            role: 'assistant', 
+            content: formattedText,
+            isStreaming: false
+          };
+        }
+        return updated;
       });
       
-      if (!streamResponse.ok) {
-        throw new Error(`HTTP error! status: ${streamResponse.status}`);
-      }
-      
-      // Get a reader from the response body stream
-      const reader = streamResponse.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let responseText = '';
-      
-      // Process the stream
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) {
-          // Stream is complete, fetch citations and finalize
-          await fetchCitations(responseText, payload);
-          break;
-        }
-        
-        // Decode the received chunk
-        const chunk = decoder.decode(value, { stream: true });
-        // Parse any SSE format (data: token\n\n)
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-        
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const token = parseSSEData(line);
-            
-            // Only add space if needed for proper spacing
-            if (responseText && 
-                !responseText.endsWith(' ') && 
-                !token.startsWith(' ') && 
-                !token.match(/^[.,;:!?)\]}\-–—]/)) {
-              responseText += ' ';
-            }
-            
-            responseText += token;
-            
-            // Format text for display
-            const formattedText = formatText(responseText);
-            
-            // Update the current message with the streamed content
-            setCurrentResponse(formattedText);
-            setMessages(prevMessages => {
-              const updated = [...prevMessages];
-              const assistantIndex = updated.length - 1;
-              if (assistantIndex >= 0 && updated[assistantIndex].isStreaming) {
-                updated[assistantIndex] = { 
-                  role: 'assistant', 
-                  content: formattedText,
-                  isStreaming: true 
-                };
-              }
-              return updated;
-            });
-          } else if (line.includes('event: done')) {
-            // Handle done event
-            break;
-          }
-        }
-      }
+      setCurrentResponse('');
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error in chat stream:', error);
+      console.error('Error in RAG API:', error);
       toast({
         title: 'Error',
-        description: 'Failed to get a response. Please try again.',
+        description: 'Failed to get a response from the RAG system. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -356,52 +318,11 @@ export default function ChatWidget({ userProfile, frameworkRanking }) {
     }
   };
   
-  // Fetch citations and finalize the response
+  // Since we're not using streaming anymore, simplify this function
   const fetchCitations = async (responseText, payload) => {
-    try {
-      const citationsResponse = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (citationsResponse.ok) {
-        const data = await citationsResponse.json();
-        
-        // Format the text before displaying it
-        const formattedText = formatText(responseText || data.answer);
-        
-        // Update the message with the final text and citations
-        setMessages(prevMessages => {
-          const updated = [...prevMessages];
-          const assistantIndex = updated.findIndex(msg => msg.isStreaming);
-          if (assistantIndex >= 0) {
-            updated[assistantIndex] = { 
-              role: 'assistant', 
-              content: formattedText,
-              citations: data.citations || [],
-              isStreaming: false
-            };
-          }
-          return updated;
-        });
-      }
-      
-      setCurrentResponse('');
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error fetching citations:', error);
-      setIsLoading(false);
-      
-      // Make sure to set isStreaming to false on error
-      setMessages(prevMessages => {
-        return prevMessages.map(msg => 
-          msg.isStreaming ? {...msg, isStreaming: false} : msg
-        );
-      });
-    }
+    // We're not fetching citations from our RAG API, so just clear loading state
+    setCurrentResponse('');
+    setIsLoading(false);
   };
   
   // Handle Enter key press

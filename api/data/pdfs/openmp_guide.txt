@@ -1,0 +1,39 @@
+OpenMP for High Performance Computing
+
+OpenMP (Open Multi-Processing) is an API that supports multi-platform shared-memory multiprocessing programming in C, C++, and Fortran. It consists of a set of compiler directives, library routines, and environment variables that influence run-time behavior.
+
+OpenMP Architecture:
+- Based on fork-join parallelism
+- Uses pragmas/directives to indicate parallel regions
+- Shared-memory programming model
+- Works well on multi-core processors and shared-memory multiprocessors
+
+Key OpenMP Directives:
+- #pragma omp parallel: Creates a team of threads
+- #pragma omp for: Divides loop iterations among threads
+- #pragma omp sections: Divides blocks of code among threads
+- #pragma omp critical: Specifies a critical section
+- #pragma omp atomic: Ensures atomic update of specific memory locations
+- #pragma omp barrier: Synchronizes all threads in a team
+
+Data Sharing Attributes:
+- shared: Variables accessible by all threads
+- private: Each thread has its own copy
+- firstprivate: Private variables initialized from shared variables
+- lastprivate: Shared variables updated with the value from the last iteration
+- reduction: Performs a reduction operation on the specified variables
+
+OpenMP Runtime Library Functions:
+- omp_get_num_threads(): Returns the number of threads
+- omp_get_thread_num(): Returns the current thread number
+- omp_set_num_threads(): Sets the number of threads
+- omp_get_wtime(): Returns elapsed wall clock time
+
+OpenMP Scheduling:
+- static: Loop iterations divided equally among threads (default)
+- dynamic: Threads grab chunks of iterations when available
+- guided: Chunk size decreases exponentially
+- auto: Implementation decides the scheduling
+- runtime: Determined at runtime via OMP_SCHEDULE
+
+OpenMP is particularly effective for loop-level parallelism and is widely used in scientific computing applications. It provides a relatively simple way to parallelize existing code without major rewrites, making it popular for incrementally optimizing applications for multi-core systems. 

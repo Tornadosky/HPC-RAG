@@ -1,0 +1,27 @@
+Message Passing Interface (MPI) Overview
+
+MPI is a standardized and portable message-passing interface designed for parallel computing architectures. It enables communication between processes that are executing in parallel across distributed memory systems.
+
+Key features of MPI:
+1. Portability: MPI programs can be executed on virtually any parallel computing architecture.
+2. Performance: MPI is designed for high performance and can scale to thousands of processors.
+3. Functionality: It provides a rich set of communication primitives for point-to-point and collective operations.
+4. Language Support: Available for C, C++, Fortran, and Python (via mpi4py).
+
+Common MPI Operations:
+- MPI_Init: Initialize the MPI execution environment
+- MPI_Comm_size: Determine the number of processes in a communicator
+- MPI_Comm_rank: Determine the rank of the calling process in a communicator
+- MPI_Send: Send a message to a specific process
+- MPI_Recv: Receive a message from a specific process
+- MPI_Bcast: Broadcast a message from one process to all other processes
+- MPI_Reduce: Reduce values from all processes to a single value
+- MPI_Finalize: Terminate the MPI execution environment
+
+MPI Implementations:
+- Open MPI: An open-source implementation developed by a consortium of academic, research, and industry partners
+- MPICH: One of the original implementations of the MPI standard
+- Intel MPI: Optimized for Intel processors
+- Microsoft MPI: Microsoft's implementation for Windows platforms
+
+MPI is widely used in scientific computing, including weather forecasting, computational fluid dynamics, quantum chemistry, and molecular dynamics simulations. It's a cornerstone of high-performance computing (HPC) and remains the dominant programming model for distributed-memory parallel computing. 

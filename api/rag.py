@@ -14,6 +14,10 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.chat_models import ChatOllama
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 
+# Hugging Face setup
+import huggingface_hub
+from huggingface_hub import login
+
 # Environment variables
 from dotenv import load_dotenv
 load_dotenv()
@@ -24,7 +28,17 @@ LLM_MODEL = os.getenv("LLM_MODEL", "llama3")
 EMBED_BASE_URL = os.getenv("EMBED_BASE_URL", "")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "all-MiniLM-L6-v2")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "")
 CHROMA_PATH = os.getenv("CHROMA_PATH", "./data/chroma_db")
+
+# Login to Hugging Face if token is provided
+if HUGGINGFACE_API_KEY:
+    print(f"Logging into Hugging Face with provided token")
+    try:
+        login(token=HUGGINGFACE_API_KEY)
+        print("Successfully logged into Hugging Face")
+    except Exception as e:
+        print(f"Error logging into Hugging Face: {str(e)}")
 
 class RAGSystem:
     def __init__(self):
@@ -32,22 +46,57 @@ class RAGSystem:
         self.llm = None
         self.retriever = None
         self.embedder = None
+        self.print_available_nvidia_models()
         self.setup_embedding_model()
         self.setup_vector_db()
         self.setup_llm()
         
+    def print_available_nvidia_models(self):
+        """Print available NVIDIA AI models for debugging"""
+        try:
+            from langchain_nvidia_ai_endpoints import ChatNVIDIA
+            print("Checking available NVIDIA models...")
+            available_models = ChatNVIDIA.get_available_models(api_key=NVIDIA_API_KEY)
+            print("Available NVIDIA LLM models:")
+            for model in available_models:
+                print(f"  - {model}")
+                
+            # Try to get available embedding models if possible
+            try:
+                from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+                embed_models = NVIDIAEmbeddings.get_available_models(api_key=NVIDIA_API_KEY)
+                print("Available NVIDIA Embedding models:")
+                for model in embed_models:
+                    print(f"  - {model}")
+            except Exception as e:
+                print(f"Could not get available embedding models: {str(e)}")
+        except Exception as e:
+            print(f"Error getting available models: {str(e)}")
+            
     def setup_embedding_model(self):
         """Set up the embedding model based on environment variables"""
-        if EMBED_BASE_URL:
-            # Use NVIDIA embeddings if base URL provided
-            from langchain_community.embeddings import NVIDIAEmbeddings
+        print(f"Setting up embedding model: {EMBED_MODEL}")
+        
+        # Check if we're using Nvidia embeddings
+        if EMBED_MODEL == "nvidia/nv-embed-v1" and HUGGINGFACE_API_KEY:
+            # Use HuggingFace embeddings for nv-embed-v1
+            from langchain.embeddings import HuggingFaceEmbeddings
+            print(f"Using HuggingFace embeddings with model: {EMBED_MODEL}")
+            self.embedder = HuggingFaceEmbeddings(
+                model_name=EMBED_MODEL,
+                model_kwargs={"trust_remote_code": True}
+            )
+        elif EMBED_MODEL.startswith("nvidia/"):
+            # Use NVIDIA API embeddings for other Nvidia models
+            from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+            print(f"Using NVIDIA AI Endpoints embeddings with model: {EMBED_MODEL}")
             self.embedder = NVIDIAEmbeddings(
-                base_url=EMBED_BASE_URL,
                 model=EMBED_MODEL,
                 api_key=NVIDIA_API_KEY
             )
         else:
-            # Fall back to SentenceTransformer embeddings
+            # Use SentenceTransformer embeddings for non-Nvidia models
+            print(f"Using SentenceTransformer embeddings with model: {EMBED_MODEL}")
             self.embedder = SentenceTransformerEmbeddings(model_name=EMBED_MODEL)
     
     def setup_vector_db(self):
@@ -65,6 +114,8 @@ class RAGSystem:
     
     def setup_llm(self):
         """Set up the LLM model based on environment variables"""
+        print(f"Setting up LLM with base URL: {LLM_BASE_URL}, model: {LLM_MODEL}")
+        
         # If we're using localhost, assume Ollama
         if "localhost" in LLM_BASE_URL or "ollama" in LLM_BASE_URL:
             self.llm = ChatOllama(
@@ -75,10 +126,23 @@ class RAGSystem:
             )
         else:
             # For production with NVIDIA NIM
-            from langchain.chat_models import ChatOpenAI
-            self.llm = ChatOpenAI(
-                model=LLM_MODEL,
-                base_url=LLM_BASE_URL,
+            from langchain_nvidia_ai_endpoints import ChatNVIDIA
+            print(f"Using NVIDIA NIM API with model: {LLM_MODEL}")
+            
+            # Check if model has the full path format (with provider)
+            if "/" not in LLM_MODEL:
+                # For older models that might not have provider prefix
+                if LLM_MODEL in ["llama3", "llama3-8b", "llama3-70b"]:
+                    model_name = f"meta/{LLM_MODEL}-instruct"
+                else:
+                    model_name = LLM_MODEL
+            else:
+                model_name = LLM_MODEL
+                
+            print(f"Using model name: {model_name}")
+            
+            self.llm = ChatNVIDIA(
+                model=model_name,
                 api_key=NVIDIA_API_KEY,
                 temperature=0.1,
                 streaming=True

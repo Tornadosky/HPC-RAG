@@ -1,0 +1,36 @@
+CUDA Programming for HPC
+
+CUDA (Compute Unified Device Architecture) is a parallel computing platform and programming model developed by NVIDIA for general computing on graphics processing units (GPUs). CUDA enables developers to use NVIDIA GPUs for general purpose processing, an approach known as GPGPU (General-Purpose computing on Graphics Processing Units).
+
+Key Concepts in CUDA:
+1. Host and Device: The CPU is referred to as the "host" and the GPU as the "device"
+2. Kernels: Functions that run on the GPU device
+3. Threads: The basic execution unit in CUDA
+4. Blocks: Collections of threads that can cooperate with each other
+5. Grids: Collections of blocks that execute the same kernel function
+
+CUDA Memory Hierarchy:
+- Global Memory: Accessible by all threads in a grid, high latency
+- Shared Memory: Fast memory shared by threads within a block
+- Local Memory: Private to each thread
+- Registers: Fastest memory, private to each thread
+- Constant Memory: Read-only memory accessible by all threads
+- Texture Memory: Optimized for spatial locality
+
+CUDA Programming Workflow:
+1. Allocate memory on the GPU
+2. Copy data from CPU to GPU
+3. Launch kernel functions on the GPU
+4. Copy results back from GPU to CPU
+5. Free GPU memory
+
+CUDA Libraries:
+- cuBLAS: Basic Linear Algebra Subroutines
+- cuFFT: Fast Fourier Transform
+- cuDNN: Deep Neural Networks
+- Thrust: C++ template library for CUDA
+- NVIDIA Performance Primitives (NPP): Image and signal processing
+
+CUDA is widely used in scientific computing, deep learning, medical imaging, computational fluid dynamics, and other compute-intensive fields. It offers significant performance advantages for parallelizable workloads compared to traditional CPU-based computing.
+
+Recent advancements in CUDA include Tensor Cores for accelerated matrix operations, multi-instance GPU capabilities, and improved support for unified memory architecture. 

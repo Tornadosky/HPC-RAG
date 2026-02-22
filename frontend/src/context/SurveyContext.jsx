@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 
 const SurveyContext = createContext();
 
@@ -48,7 +48,7 @@ export function SurveyProvider({ children }) {
     
     try {
       console.log("Submitting survey data:", surveyData);
-      const response = await axios.post('/api/predict', surveyData);
+      const response = await api.post('/api/predict', surveyData);
       console.log("API Response received:", response.data);
       console.log("Framework rankings with probabilities:", response.data.ranking);
       
